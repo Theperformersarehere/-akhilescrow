@@ -25,7 +25,12 @@ async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, del
         "Choose an option below 👇"
     ))
     support_username = await Database.get_setting("support_username", "@owner")
-    keyboard = main_menu_keyboard(support_username)
+    referral_channel = await Database.get_setting("referral_channel", "")
+    community_url = ""
+    if referral_channel:
+        community_url = referral_channel if referral_channel.startswith("http") else f"https://t.me/{referral_channel.lstrip('@')}"
+    keyboard = main_menu_keyboard(support_username, community_url=community_url)
+
 
     if delete_prev and update.callback_query:
         try:

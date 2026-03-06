@@ -1,17 +1,20 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-def main_menu_keyboard(support_username: str = "@owner") -> InlineKeyboardMarkup:
+def main_menu_keyboard(support_username: str = "@owner", community_url: str = "") -> InlineKeyboardMarkup:
     support_url = f"https://t.me/{support_username.replace('@', '')}"
-    return InlineKeyboardMarkup([
+    rows = [
         [InlineKeyboardButton("💰 BUY CRYPTO", callback_data="buy")],
         [
             InlineKeyboardButton("🎁 Referral",  callback_data="referral"),
             InlineKeyboardButton("📊 Stats",     callback_data="stats"),
             InlineKeyboardButton("👤 Profile",  callback_data="profile"),
         ],
-        [InlineKeyboardButton("🆘 Support", url=support_url)],
-    ])
+    ]
+    if community_url:
+        rows.append([InlineKeyboardButton("👥 Community", url=community_url)])
+    rows.append([InlineKeyboardButton("🆘 Support", url=support_url)])
+    return InlineKeyboardMarkup(rows)
 
 
 def network_keyboard() -> InlineKeyboardMarkup:
