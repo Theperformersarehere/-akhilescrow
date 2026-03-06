@@ -79,20 +79,51 @@ class Database:
     # ── Users ──────────────────────────────────────────────────────────────
 
     @staticmethod
-    async def get_or_create_user(user_id: int, username: str, full_name: str) -> dict:
+    async def get_or_create_user(user_id: int, username: str, full_name: str, referrer_id: int | None = None) -> dict:
         def _query():
             try:
+                # Check if the user already exists (detect new vs existing)
+                existing = _client.table("users").select("user_id").eq("user_id", user_id).execute()
+                is_new = not (existing and existing.data)
+
+                # Upsert the user (won't overwrite existing fields beyond username/full_name)
                 _client.table("users").upsert({
                     "user_id": user_id,
                     "username": username,
                     "full_name": full_name
                 }, on_conflict="user_id").execute()
-                
+
+                # If brand-new user and a valid referrer was supplied, record it
+                if is_new and referrer_id and referrer_id != user_id:
+                    try:
+                        # Mark who referred this user
+                        _client.table("users").update({"referred_by": referrer_id}).eq("user_id", user_id).execute()
+                        # Increment referrer's referral_count
+                        ref_res = _client.table("users").select("referral_count").eq("user_id", referrer_id).execute()
+                        if ref_res and ref_res.data:
+                            current = ref_res.data[0].get("referral_count") or 0
+                            _client.table("users").update({"referral_count": current + 1}).eq("user_id", referrer_id).execute()
+                    except Exception as ref_err:
+                        logger.warning(f"[{INSTANCE_ID}] Referral credit failed: {ref_err}")
+
                 res = _client.table("users").select("*").eq("user_id", user_id).execute()
                 return res.data[0] if res and res.data else {}
             except Exception as e:
                 logger.error(f"[{INSTANCE_ID}] get_or_create_user error: {e}")
                 return {}
+        return await _run(_query)
+
+    @staticmethod
+    async def get_referral_count(user_id: int) -> int:
+        def _query():
+            try:
+                res = _client.table("users").select("referral_count").eq("user_id", user_id).execute()
+                if res and res.data:
+                    return int(res.data[0].get("referral_count") or 0)
+                return 0
+            except Exception as e:
+                logger.error(f"[{INSTANCE_ID}] get_referral_count error: {e}")
+                return 0
         return await _run(_query)
 
     @staticmethod

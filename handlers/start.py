@@ -57,6 +57,30 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.delete()
     except Exception:
         pass
+
+    user = update.effective_user
+
+    # ── Referral tracking ──────────────────────────────────────────────────
+    # Check if this user was referred: /start ref_12345678
+    referrer_id = None
+    args = context.args  # list of words after /start
+    if args:
+        arg = args[0]
+        if arg.startswith("ref_"):
+            try:
+                referrer_id = int(arg[4:])
+            except ValueError:
+                referrer_id = None
+
+    # Register user. If they are brand-new AND came via a referral link,
+    # get_or_create_user will credit the referrer automatically.
+    await Database.get_or_create_user(
+        user.id,
+        user.username or "",
+        user.full_name or "",
+        referrer_id=referrer_id,
+    )
+
     await send_main_menu(update, context, delete_prev=False)
 
 

@@ -3,7 +3,6 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes, CallbackQueryHandler
 
 from database import Database
-from utils.keyboards import back_to_main
 
 logger = logging.getLogger(__name__)
 
@@ -26,26 +25,32 @@ async def referral_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user.full_name or "",
     )
 
-    # Fetch settings from DB
+    # Fetch admin-configured settings
     referral_photo   = await Database.get_setting("referral_photo", "")
-    referral_link    = await Database.get_setting("referral_link", "")
     referral_channel = await Database.get_setting("referral_channel", "")
+
+    # Get this user's personal referral count
+    referral_count = await Database.get_referral_count(user.id)
+
+    # Build the user's personal referral link
+    bot_info = await context.bot.get_me()
+    bot_username = bot_info.username
+    personal_ref_link = f"https://t.me/{bot_username}?start=ref_{user.id}"
 
     text = (
         f"🎁 *Referral Program*\n\n"
-        f"Share your referral link and earn rewards!\n\n"
+        f"📣 Share your link — only *new* users count!\n\n"
+        f"🔗 *Your Referral Link:*\n"
+        f"`{personal_ref_link}`\n\n"
+        f"👥 *People You've Referred:* *{referral_count}*\n"
     )
-    if referral_link:
-        text += f"🔗 *Referral Link:*\n`{referral_link}`\n\n"
     if referral_channel:
-        text += f"📢 *Updates Channel:*\n{referral_channel}\n\n"
-    if not referral_link and not referral_channel:
-        text += "_Referral program details coming soon!_"
+        text += f"\n📢 *Updates Channel:* {referral_channel}\n"
 
     # Build keyboard
-    rows = []
-    if referral_link:
-        rows.append([InlineKeyboardButton("🔗 Open Referral Link", url=referral_link)])
+    rows = [
+        [InlineKeyboardButton("🔗 Share Referral Link", url=f"https://t.me/share/url?url={personal_ref_link}&text=Join+via+my+link!")],
+    ]
     if referral_channel:
         channel_url = referral_channel if referral_channel.startswith("http") else f"https://t.me/{referral_channel.lstrip('@')}"
         rows.append([InlineKeyboardButton("📢 Join Updates Channel", url=channel_url)])
