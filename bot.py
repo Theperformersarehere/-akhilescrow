@@ -24,8 +24,11 @@ def build_app() -> Application:
     for handler in channel_handlers():
         app.add_handler(handler)
 
-    # 2. Admin conversation
+    # 2. Admin conversation & commands
     app.add_handler(get_admin_conversation())
+    from handlers.admin import get_admin_handlers
+    for handler in get_admin_handlers():
+        app.add_handler(handler)
 
     # 3. Buy conversation
     app.add_handler(get_buy_conversation())

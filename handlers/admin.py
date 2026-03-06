@@ -928,7 +928,75 @@ async def receive_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ADMIN_HOME
 
 
+# ── Admin Reply ───────────────────────────────────────────────────────────────
+async def admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not _is_admin(user.id):
+        return
+
+    # Usage: /reply <id|@username> [message]
+    # If photo is attached, it sends as a photo with caption.
+    args = context.args
+    msg = update.effective_message
+    
+    if not args:
+        await msg.reply_text(
+            "❌ *Usage:*\n`/reply <user_id|@username> [message]`\n\n"
+            "You can also attach an image to send a screenshot.",
+            parse_mode="Markdown"
+        )
+        return
+
+    target = args[0]
+    reply_text = " ".join(args[1:])
+
+    # Find target ID
+    target_id = None
+    if target.isdigit():
+        target_id = int(target)
+    elif target.startswith("@"):
+        u = await Database.get_user_by_username(target)
+        if u:
+            target_id = u["user_id"]
+    
+    if not target_id:
+        await msg.reply_text(f"❌ User `{target}` not found in database.")
+        return
+
+    # Detect photo
+    photo_id = None
+    if msg.photo:
+        photo_id = msg.photo[-1].file_id
+    elif msg.reply_to_message and msg.reply_to_message.photo:
+        photo_id = msg.reply_to_message.photo[-1].file_id
+
+    try:
+        header = "💬 *Message from Admin:*\n\n"
+        if photo_id:
+            await context.bot.send_photo(
+                chat_id=target_id,
+                photo=photo_id,
+                caption=f"{header}{reply_text}" if reply_text else header,
+                parse_mode="Markdown"
+            )
+        else:
+            await context.bot.send_message(
+                chat_id=target_id,
+                text=f"{header}{reply_text}",
+                parse_mode="Markdown"
+            )
+        await msg.reply_text(f"✅ Message sent to `{target}`.")
+    except Exception as e:
+        await msg.reply_text(f"❌ Failed to send: {e}")
+
+
 # ── ConversationHandler factory ───────────────────────────────────────────────
+def get_admin_handlers():
+    return [
+        CommandHandler("reply", admin_reply),
+    ]
+
+
 def get_admin_conversation() -> ConversationHandler:
     back_btn = CallbackQueryHandler(admin_home, pattern="^adm_back$")
 

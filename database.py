@@ -47,6 +47,19 @@ class Database:
                 return None
         return await _run(_query)
 
+    @staticmethod
+    async def get_user_by_username(username: str) -> dict | None:
+        def _query():
+            try:
+                # Remove @ if present
+                clean_username = username.lstrip("@")
+                res = _client.table("users").select("*").eq("username", clean_username).maybe_single().execute()
+                return res.data
+            except Exception as e:
+                logger.error(f"get_user_by_username error: {e}")
+                return None
+        return await _run(_query)
+
     # ── Orders ─────────────────────────────────────────────────────────────
 
     @staticmethod

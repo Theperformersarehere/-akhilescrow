@@ -93,10 +93,6 @@ def admin_home_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton("⏳ Pending Only",  callback_data="adm_pending"),
         ],
         [
-            InlineKeyboardButton("✅ Approve Order", callback_data="adm_approve"),
-            InlineKeyboardButton("❌ Reject Order",  callback_data="adm_reject"),
-        ],
-        [
             InlineKeyboardButton("📊 User Stats",    callback_data="adm_user_stats"),
         ],
     ])
