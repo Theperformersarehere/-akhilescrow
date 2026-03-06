@@ -60,6 +60,17 @@ class Database:
                 return None
         return await _run(_query)
 
+    @staticmethod
+    async def get_all_users_ids() -> list:
+        def _query():
+            try:
+                res = _client.table("users").select("user_id").execute()
+                return [row["user_id"] for row in res.data] if res.data else []
+            except Exception as e:
+                logger.error(f"get_all_users_ids error: {e}")
+                return []
+        return await _run(_query)
+
     # ── Orders ─────────────────────────────────────────────────────────────
 
     @staticmethod
@@ -100,9 +111,17 @@ class Database:
                 res = _client.table("orders").update(
                     {"status": "approved"}
                 ).eq("order_id", order_id).execute()
-                if not res.data:
+                
+                order = None
+                if res.data:
+                    order = res.data[0]
+                else:
+                    # Fallback: fetch manually
+                    res_fetch = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
+                    order = res_fetch.data
+                
+                if not order:
                     return None
-                order = res.data[0]
                 u = _client.table("users").select(
                     "successful_payments,total_buys"
                 ).eq("user_id", order["user_id"]).maybe_single().execute()
@@ -124,9 +143,16 @@ class Database:
                 res = _client.table("orders").update(
                     {"status": "rejected"}
                 ).eq("order_id", order_id).execute()
-                if not res.data:
+
+                order = None
+                if res.data:
+                    order = res.data[0]
+                else:
+                    res_fetch = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
+                    order = res_fetch.data
+                
+                if not order:
                     return None
-                order = res.data[0]
                 u = _client.table("users").select(
                     "rejected_payments"
                 ).eq("user_id", order["user_id"]).maybe_single().execute()

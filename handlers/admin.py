@@ -990,10 +990,83 @@ async def admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.reply_text(f"❌ Failed to send: {e}")
 
 
+# ── Admin Broadcast ────────────────────────────────────────────────────────────
+async def admin_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not _is_admin(user.id):
+        return
+
+    msg = update.effective_message
+    
+    # Extract text from command
+    text = ""
+    if msg.text:
+        text = msg.text[len("/broadcast "):].strip()
+    elif msg.caption:
+        text = msg.caption[len("/broadcast "):].strip()
+
+    if not text and not msg.photo:
+        await msg.reply_text("❌ *Usage:* `/broadcast <message>` (or attach a photo with caption).")
+        return
+
+    all_user_ids = await Database.get_all_users_ids()
+    if not all_user_ids:
+        await msg.reply_text("❌ No users found in database.")
+        return
+
+    status_msg = await msg.reply_text(
+        f"⏳ *Broadcast in progress...*\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👥 Total Users: `{len(all_user_ids)}`\n"
+        f"✅ Sent: `0`\n"
+        f"❌ Failed: `0` (Blocked/Deleted)",
+        parse_mode="Markdown"
+    )
+
+    sent = 0
+    failed = 0
+    photo_id = msg.photo[-1].file_id if msg.photo else None
+
+    for i, uid in enumerate(all_user_ids):
+        try:
+            if photo_id:
+                await context.bot.send_photo(chat_id=uid, photo=photo_id, caption=text, parse_mode="Markdown")
+            else:
+                await context.bot.send_message(chat_id=uid, text=text, parse_mode="Markdown")
+            sent += 1
+        except Exception:
+            failed += 1
+        
+        if (i + 1) % 5 == 0 or (i + 1) == len(all_user_ids):
+            try:
+                await status_msg.edit_text(
+                    f"⌛ *Broadcast Progress:*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n"
+                    f"👥 Total Users: `{len(all_user_ids)}`\n"
+                    f"✅ Sent: `{sent}`\n"
+                    f"❌ Failed: `{failed}`\n"
+                    f"📊 Progress: `{(i+1)/len(all_user_ids)*100:.1f}%`",
+                    parse_mode="Markdown"
+                )
+            except Exception: pass
+        await asyncio.sleep(0.05)
+
+    await status_msg.edit_text(
+        f"📢 *Broadcast Completed!*\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👥 Total Users: `{len(all_user_ids)}`\n"
+        f"✅ Successfully Sent: `{sent}`\n"
+        f"❌ Failed: `{failed}`",
+        parse_mode="Markdown"
+    )
+
+
 # ── ConversationHandler factory ───────────────────────────────────────────────
 def get_admin_handlers():
     return [
         CommandHandler("reply", admin_reply),
+        CommandHandler("broadcast", admin_broadcast),
+        MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/broadcast"), admin_broadcast),
     ]
 
 
