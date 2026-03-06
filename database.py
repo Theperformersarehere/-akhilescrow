@@ -37,14 +37,22 @@ class Database:
                     logger.error(f"[{INSTANCE_ID}] ❌ CRITICAL: SUPABASE_URL is not set correctly!")
                     return False
 
-                # Try to fetch JUST the keys from bot_settings to see if table exists
-                res = _client.table("bot_settings").select("key").limit(1).execute()
-                if res and hasattr(res, 'data'):
-                    logger.info(f"[{INSTANCE_ID}] ✅ DB Connection Verified. Table 'bot_settings' accessible.")
-                    return True
-                else:
-                    logger.error(f"[{INSTANCE_ID}] ❌ DB Connection Failed: Table 'bot_settings' not found or inaccessible.")
+                # Verify all three main tables
+                missing = []
+                for table in ["bot_settings", "users", "orders"]:
+                    try:
+                        _client.table(table).select("count", count="exact").limit(0).execute()
+                        logger.info(f"[{INSTANCE_ID}] ✅ Table '{table}' verified.")
+                    except Exception as e:
+                        logger.error(f"[{INSTANCE_ID}] ❌ Table '{table}' check error: {e}")
+                        missing.append(table)
+                
+                if missing:
+                    logger.error(f"[{INSTANCE_ID}] 🛑 Missing tables: {missing}")
                     return False
+
+                logger.info(f"[{INSTANCE_ID}] ✅ DB Connection & Schema Verified.")
+                return True
             except Exception as e:
                 logger.error(f"[{INSTANCE_ID}] ❌ DB Connection Error: {e}")
                 return False
@@ -108,29 +116,46 @@ class Database:
     @staticmethod
     async def create_order(data: dict) -> dict:
         def _query():
-            logger.info(f"[{INSTANCE_ID}] Database: Creating order {data.get('order_id')} for user {data.get('user_id')}")
+            order_id = data.get('order_id')
+            user_id = data.get('user_id')
+            logger.info(f"[{INSTANCE_ID}] Database: Attempting to create order {order_id} for user {user_id}")
+            
             try:
+                # 1. Ensure user exists first (Foreign Key protection)
+                u_check = _client.table("users").select("user_id").eq("user_id", user_id).execute()
+                if not u_check.data:
+                    logger.info(f"[{INSTANCE_ID}] User {user_id} not in DB. Creating minimal record first.")
+                    _client.table("users").upsert({"user_id": user_id}).execute()
+
+                # 2. Insert order
                 res = _client.table("orders").insert(data).execute()
+                
                 if not res or not res.data:
-                    logger.error(f"[{INSTANCE_ID}] Database: create_order failed to return data for {data.get('order_id')}")
+                    logger.error(f"[{INSTANCE_ID}] Database: create_order returned NO DATA. Response: {res}")
                     return {}
                 
                 order = res.data[0]
-                logger.info(f"[{INSTANCE_ID}] Database: Order {order.get('order_id')} saved successfully.")
+                logger.info(f"[{INSTANCE_ID}] Database: Order {order_id} saved successfully with DB ID: {order.get('id')}")
 
+                # 3. Increment total_orders on user
                 try:
-                    uid = data.get("user_id")
-                    u_res = _client.table("users").select("total_orders").eq("user_id", uid).execute()
-                    if u_res and u_res.data:
-                        curr_total = u_res.data[0].get("total_orders") or 0
-                        _client.table("users").update({"total_orders": curr_total + 1}).eq("user_id", uid).execute()
-                        logger.info(f"[{INSTANCE_ID}] Database: Incremented total_orders for user {uid}")
-                except Exception as u_err:
-                    logger.error(f"[{INSTANCE_ID}] Database: Failed to update user's total_orders: {u_err}")
+                    _client.rpc('increment_total_orders', {'u_id': user_id}).execute()
+                except Exception:
+                    # Fallback to manual update if RPC missing
+                    try:
+                        u_res = _client.table("users").select("total_orders").eq("user_id", user_id).execute()
+                        if u_res and u_res.data:
+                            curr = u_res.data[0].get("total_orders") or 0
+                            _client.table("users").update({"total_orders": curr + 1}).eq("user_id", user_id).execute()
+                    except Exception as u_err:
+                        logger.error(f"[{INSTANCE_ID}] Database: User counter update failed: {u_err}")
 
                 return order
             except Exception as e:
-                logger.error(f"[{INSTANCE_ID}] Database: create_order exception: {e}", exc_info=True)
+                logger.error(f"[{INSTANCE_ID}] Database: create_order CRITICAL exception: {e}", exc_info=True)
+                # Check for RLS issues or missing columns
+                if "contains both an update and an insert" in str(e):
+                    logger.error(f"[{INSTANCE_ID}] Potential upsert conflict or schema issue.")
                 return {}
         return await _run(_query)
 
