@@ -317,6 +317,7 @@ async def prompt_payment_proof(update: Update, context: ContextTypes.DEFAULT_TYP
     order_id = context.user_data.get("current_order_id", "N/A")
 
     if method == "IMPS":
+        context.user_data["awaiting_screenshot"] = True
         msg = await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=(
