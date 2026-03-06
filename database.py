@@ -108,47 +108,45 @@ class Database:
     async def approve_order(order_id: str) -> dict | None:
         def _query():
             try:
-                # 1. Update order status
-                # Try to get data back immediately with select()
-                res = _client.table("orders").update({"status": "approved"}).eq("order_id", order_id).select("*").execute()
-                
-                order = None
-                if res.data and len(res.data) > 0:
-                    order = res.data[0]
-                else:
-                    # Fallback fetch
-                    res_f = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
-                    order = res_f.data
-                
+                # 1. Fetch order first
+                res_f = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
+                order = res_f.data
                 if not order:
-                    logger.warning(f"approve_order: Order {order_id} not found after update attempt.")
+                    logger.warning(f"approve_order: Order {order_id} not found.")
                     return None
                 
-                # 2. Update user stats
-                uid = order.get("user_id")
-                if uid:
-                    u_res = _client.table("users").select("*").eq("user_id", uid).maybe_single().execute()
-                    user_data = u_res.data
-                    if user_data:
-                        succ = (user_data.get("successful_payments") or 0) + 1
-                        prev_buys = 0
-                        try:
-                            prev_buys = float(user_data.get("total_buys") or 0)
-                        except (ValueError, TypeError): pass
-                        
-                        curr_amt = 0
-                        try:
-                            curr_amt = float(order.get("amount_usd") or 0)
-                        except (ValueError, TypeError): pass
-                        
-                        _client.table("users").update({
-                            "successful_payments": succ,
-                            "total_buys": prev_buys + curr_amt,
-                        }).eq("user_id", uid).execute()
+                # 2. Update status
+                _client.table("orders").update({"status": "approved"}).eq("order_id", order_id).execute()
+                order["status"] = "approved" # Optimistic update for return
+
+                # 3. Update user stats (independent attempt)
+                try:
+                    uid = order.get("user_id")
+                    if uid:
+                        u_res = _client.table("users").select("*").eq("user_id", uid).maybe_single().execute()
+                        if u_res.data:
+                            user_data = u_res.data
+                            succ = (user_data.get("successful_payments") or 0) + 1
+                            prev_buys = 0
+                            try:
+                                prev_buys = float(user_data.get("total_buys") or 0)
+                            except: pass
+                            
+                            curr_amt = 0
+                            try:
+                                curr_amt = float(order.get("amount_usd") or 0)
+                            except: pass
+                            
+                            _client.table("users").update({
+                                "successful_payments": succ,
+                                "total_buys": prev_buys + curr_amt,
+                            }).eq("user_id", uid).execute()
+                except Exception as user_err:
+                    logger.error(f"User stats update failed (non-critical): {user_err}")
                 
                 return order
             except Exception as e:
-                logger.error(f"approve_order error for {order_id}: {e}", exc_info=True)
+                logger.error(f"approve_order CRITICAL error for {order_id}: {e}", exc_info=True)
                 return None
         return await _run(_query)
 
@@ -156,31 +154,31 @@ class Database:
     async def reject_order(order_id: str) -> dict | None:
         def _query():
             try:
-                # 1. Update order status
-                res = _client.table("orders").update({"status": "rejected"}).eq("order_id", order_id).select("*").execute()
-                
-                order = None
-                if res.data and len(res.data) > 0:
-                    order = res.data[0]
-                else:
-                    res_f = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
-                    order = res_f.data
-                
+                # 1. Fetch order
+                res_f = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
+                order = res_f.data
                 if not order:
-                    logger.warning(f"reject_order: Order {order_id} not found after update attempt.")
+                    logger.warning(f"reject_order: Order {order_id} not found.")
                     return None
                 
-                # 2. Update user stats (rejected count)
-                uid = order.get("user_id")
-                if uid:
-                    u_res = _client.table("users").select("rejected_payments").eq("user_id", uid).maybe_single().execute()
-                    if u_res.data:
-                        rejs = (u_res.data.get("rejected_payments") or 0) + 1
-                        _client.table("users").update({"rejected_payments": rejs}).eq("user_id", uid).execute()
+                # 2. Update status
+                _client.table("orders").update({"status": "rejected"}).eq("order_id", order_id).execute()
+                order["status"] = "rejected"
+
+                # 3. Update user stats (independent attempt)
+                try:
+                    uid = order.get("user_id")
+                    if uid:
+                        u_res = _client.table("users").select("rejected_payments").eq("user_id", uid).maybe_single().execute()
+                        if u_res.data:
+                            rejs = (u_res.data.get("rejected_payments") or 0) + 1
+                            _client.table("users").update({"rejected_payments": rejs}).eq("user_id", uid).execute()
+                except Exception as user_err:
+                    logger.error(f"User stats update failed (non-critical): {user_err}")
                 
                 return order
             except Exception as e:
-                logger.error(f"reject_order error for {order_id}: {e}", exc_info=True)
+                logger.error(f"reject_order CRITICAL error for {order_id}: {e}", exc_info=True)
                 return None
         return await _run(_query)
 
