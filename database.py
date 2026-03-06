@@ -37,21 +37,39 @@ class Database:
                     logger.error(f"[{INSTANCE_ID}] ❌ CRITICAL: SUPABASE_URL is not set correctly!")
                     return False
 
-                # Verify all three main tables
-                missing = []
-                for table in ["bot_settings", "users", "orders"]:
+                # Verify all three main tables and their required columns
+                schema_check = {
+                    "users": ["user_id", "total_orders"],
+                    "orders": ["order_id", "wallet_address", "payment_method", "screenshot_id"],
+                    "bot_settings": ["key", "value"]
+                }
+                
+                missing_tables = []
+                missing_cols = []
+
+                for table, cols in schema_check.items():
                     try:
-                        _client.table(table).select("count", count="exact").limit(0).execute()
+                        # Fetch 0 rows but get the column info from the response
+                        res = _client.table(table).select("*").limit(0).execute()
                         logger.info(f"[{INSTANCE_ID}] ✅ Table '{table}' verified.")
+                        
+                        # Check columns if possible (PostgREST usually doesn't return keys if 0 rows, 
+                        # but we can try to find them in the response metadata or just try a dummy select)
+                        for col in cols:
+                            try:
+                                _client.table(table).select(col).limit(0).execute()
+                            except Exception:
+                                missing_cols.append(f"{table}.{col}")
                     except Exception as e:
                         logger.error(f"[{INSTANCE_ID}] ❌ Table '{table}' check error: {e}")
-                        missing.append(table)
+                        missing_tables.append(table)
                 
-                if missing:
-                    logger.error(f"[{INSTANCE_ID}] 🛑 Missing tables: {missing}")
+                if missing_tables or missing_cols:
+                    if missing_tables: logger.error(f"[{INSTANCE_ID}] 🛑 Missing tables: {missing_tables}")
+                    if missing_cols: logger.error(f"[{INSTANCE_ID}] 🛑 Missing columns: {missing_cols}")
                     return False
 
-                logger.info(f"[{INSTANCE_ID}] ✅ DB Connection & Schema Verified.")
+                logger.info(f"[{INSTANCE_ID}] ✅ DB Connection, Schema & Columns Verified.")
                 return True
             except Exception as e:
                 logger.error(f"[{INSTANCE_ID}] ❌ DB Connection Error: {e}")
