@@ -4,57 +4,57 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 def main_menu_keyboard(support_username: str = "@owner") -> InlineKeyboardMarkup:
     support_url = f"https://t.me/{support_username.replace('@', '')}"
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("💰 𝗕𝗨𝗬 𝗖𝗥𝗬𝗣𝗧𝗢", callback_data="buy")],
+        [InlineKeyboardButton("💰 BUY CRYPTO", callback_data="buy")],
         [
-            InlineKeyboardButton("📊 𝗦𝗧𝗔𝗧𝗦",   callback_data="stats"),
-            InlineKeyboardButton("👤 𝗣𝗥𝗢𝗙𝗜𝗟𝗘", callback_data="profile"),
+            InlineKeyboardButton("📊 Stats",   callback_data="stats"),
+            InlineKeyboardButton("👤 Profile", callback_data="profile"),
         ],
-        [InlineKeyboardButton("🆘 𝗦𝗨𝗣𝗣𝗢𝗥𝗧", url=support_url)],
+        [InlineKeyboardButton("🆘 Support", url=support_url)],
     ])
 
 
 def network_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🟡 𝗕𝗘𝗣𝟮𝟬", callback_data="net_bep20"),
-            InlineKeyboardButton("🔷 𝗘𝗥𝗖𝟮𝟬",  callback_data="net_erc20"),
+            InlineKeyboardButton("🟡 BEP20", callback_data="net_bep20"),
+            InlineKeyboardButton("🔷 ERC20",  callback_data="net_erc20"),
         ],
         [
-            InlineKeyboardButton("💎 𝗧𝗢𝗡",   callback_data="net_ton"),
-            InlineKeyboardButton("🔴 𝗧𝗥𝗖𝟮𝟬", callback_data="net_trc20"),
+            InlineKeyboardButton("💎 TON",   callback_data="net_ton"),
+            InlineKeyboardButton("🔴 TRC20", callback_data="net_trc20"),
         ],
-        [InlineKeyboardButton("⬅️ 𝗕𝗔𝗖𝗞", callback_data="main_menu")],
+        [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")],
     ])
 
 
 def amount_entry_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📊 𝗩𝗜𝗘𝗪 𝗘𝗫𝗖𝗛𝗔𝗡𝗚𝗘 𝗥𝗔𝗧𝗘𝗦", callback_data="view_rates")],
-        [InlineKeyboardButton("⬅️ 𝗕𝗔𝗖𝗞", callback_data="main_menu")],
+        [InlineKeyboardButton("📊 View Exchange Rates", callback_data="view_rates")],
+        [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")],
     ])
 
 
 def payment_method_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🏛 𝗨𝗣𝗜", callback_data="pay_upi"),
-            InlineKeyboardButton("🏦 𝗜𝗠𝗣𝗦", callback_data="pay_imps"),
-            InlineKeyboardButton("🏧 𝗖𝗗𝗠", callback_data="pay_cdm"),
+            InlineKeyboardButton("🏛 UPI", callback_data="pay_upi"),
+            InlineKeyboardButton("🏦 IMPS", callback_data="pay_imps"),
+            InlineKeyboardButton("🏧 CDM", callback_data="pay_cdm"),
         ],
-        [InlineKeyboardButton("⬅️ 𝗕𝗔𝗖𝗞", callback_data="main_menu")],
+        [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")],
     ])
 
 
 def payment_proof_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ 𝗜 𝗛𝗔𝗩𝗘 𝗣𝗔𝗜𝗗", callback_data="submit_proof")],
-        [InlineKeyboardButton("⬅️ 𝗕𝗔𝗖𝗞", callback_data="main_menu")],
+        [InlineKeyboardButton("✅ I Have Paid", callback_data="submit_proof")],
+        [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")],
     ])
 
 
 def back_to_main() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("⬅️ 𝗕𝗔𝗖𝗞", callback_data="main_menu")],
+        [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")],
     ])
 
 

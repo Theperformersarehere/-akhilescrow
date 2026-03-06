@@ -31,7 +31,9 @@ logger = logging.getLogger(__name__)
     ADMIN_VIEW_ORDERS,
     ADMIN_AWAIT_CHANNEL,
     ADMIN_AWAIT_STATS_USER_ID,
-) = range(18)
+    ADMIN_AWAIT_STATS_USER_LIST,
+    ADMIN_AWAIT_STATS_USER_TRANS,
+) = range(20)
 
 
 # ── Guard ──────────────────────────────────────────────────────────────────────
@@ -51,8 +53,11 @@ async def admin_home(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not _is_admin(user.id):
         if update.message:
-            await update.message.reply_text("⛔ You are not authorised to use this command.")
+            await _delete(update.message)
         return ConversationHandler.END
+
+    if update.message:
+        await _delete(update.message)
 
     await Database.get_or_create_user(
         user.id,
@@ -83,12 +88,13 @@ async def prompt_main_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await _delete(query.message)
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="🖼 *Send the new Main Menu photo:*",
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_MAIN_PHOTO
 
 
@@ -96,6 +102,13 @@ async def receive_main_photo(update: Update, context: ContextTypes.DEFAULT_TYPE)
     file_id = update.message.photo[-1].file_id
     await Database.set_setting("main_menu_photo", file_id)
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="✅ Main menu photo updated!",
@@ -108,18 +121,26 @@ async def prompt_main_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await _delete(query.message)
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="📝 *Send the new Main Menu text:*",
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_MAIN_TEXT
 
 
 async def receive_main_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await Database.set_setting("main_menu_text", update.message.text.strip())
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="✅ Main menu text updated!",
@@ -132,12 +153,13 @@ async def prompt_pay_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await _delete(query.message)
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="💳 *Send the new Buy Amount photo:*",
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_PAY_PHOTO
 
 
@@ -145,6 +167,13 @@ async def receive_pay_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file_id = update.message.photo[-1].file_id
     await Database.set_setting("buy_photo", file_id)
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="✅ Buy photo updated!",
@@ -157,18 +186,26 @@ async def prompt_pay_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await _delete(query.message)
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="📝 *Send the new Buy Menu text:*",
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_PAY_TEXT
 
 
 async def receive_pay_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await Database.set_setting("buy_text", update.message.text.strip())
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="✅ Buy menu text updated!",
@@ -181,12 +218,13 @@ async def prompt_stats_photo(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     await query.answer()
     await _delete(query.message)
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="📊 *Send the new Stats page photo:*",
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_STATS_PHOTO
 
 
@@ -194,6 +232,13 @@ async def receive_stats_photo(update: Update, context: ContextTypes.DEFAULT_TYPE
     file_id = update.message.photo[-1].file_id
     await Database.set_setting("stats_photo", file_id)
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="✅ Stats photo updated!",
@@ -206,12 +251,13 @@ async def prompt_profile_photo(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
     await _delete(query.message)
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="👤 *Send the new Profile page photo:*",
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_PROFILE_PHOTO
 
 
@@ -219,6 +265,13 @@ async def receive_profile_photo(update: Update, context: ContextTypes.DEFAULT_TY
     file_id = update.message.photo[-1].file_id
     await Database.set_setting("profile_photo", file_id)
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="✅ Profile photo updated!",
@@ -233,12 +286,13 @@ async def prompt_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     await _delete(query.message)
     cur = await Database.get_setting("support_username", "@support")
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"📞 *Current support username:* `{cur}`\n\nSend the new username (e.g. `@mysupport`):",
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_SUPPORT
 
 
@@ -246,6 +300,13 @@ async def receive_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     val = update.message.text.strip()
     await Database.set_setting("support_username", val)
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"✅ Support username set to `{val}`",
@@ -261,7 +322,7 @@ async def prompt_conv_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     await _delete(query.message)
     cur = await Database.get_setting("conversion_rate_message", "")
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=(
             f"💬 *Current rates popup message:*\n\n{cur}\n\n"
@@ -270,6 +331,7 @@ async def prompt_conv_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_CONV_MSG
 
 
@@ -277,6 +339,13 @@ async def receive_conv_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     val = update.message.text
     await Database.set_setting("conversion_rate_message", val)
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="✅ Conversion rate message updated!",
@@ -302,12 +371,13 @@ async def prompt_pay_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = payment_info_action_keyboard()
     
     text_val = await Database.get_setting(f"{method}_text", "Not set")
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"🏦 *{method.upper()} Settings*\n\nCurrent Text:\n`{text_val}`\n\nWhat would you like to update?",
         parse_mode="Markdown",
         reply_markup=markup,
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_PAY_INFO_ACTION
 
 
@@ -316,12 +386,13 @@ async def prompt_pay_info_photo(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
     method = context.user_data.get("editing_pay_method", "")
     await _delete(query.message)
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"🖼 *Send the payment photo for {method.upper()}:*",
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_PAY_INFO_PHOTO
 
 
@@ -330,12 +401,13 @@ async def prompt_pay_info_text(update: Update, context: ContextTypes.DEFAULT_TYP
     await query.answer()
     method = context.user_data.get("editing_pay_method", "")
     await _delete(query.message)
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"📝 *Send the new payment details text for {method.upper()}:*",
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_PAY_INFO_TEXT
 
 
@@ -345,6 +417,13 @@ async def receive_pay_info_photo(update: Update, context: ContextTypes.DEFAULT_T
     if method:
         await Database.set_setting(f"{method}_photo", file_id)
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"✅ {method.upper()} photo updated!",
@@ -359,6 +438,13 @@ async def receive_pay_info_text(update: Update, context: ContextTypes.DEFAULT_TY
     if method:
         await Database.set_setting(f"{method}_text", val)
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"✅ {method.upper()} text updated!",
@@ -388,7 +474,7 @@ async def prompt_rates(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Tier 3: ${t3_min}+ → ₹{t3_rate}"
     )
 
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=(
             f"📈 *Current Exchange Rate Tiers:*\n\n`{cur}`\n\n"
@@ -403,17 +489,32 @@ async def prompt_rates(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_RATES
 
 
 async def receive_rates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
+    await _delete(update.message)
+    
+    # Clean up the previous bot prompt
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
+
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     if len(lines) != 3:
-        await update.message.reply_text(
-            "❌ Please send exactly 3 lines in `min,max,rate` format.",
+        msg = await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="❌ *Please send exactly 3 lines in `min,max,rate` format.*",
             parse_mode="Markdown",
+            reply_markup=admin_cancel_keyboard(),
         )
+        context.user_data["admin_prompt_msg_id"] = msg.message_id
         return ADMIN_AWAIT_RATES
 
     try:
@@ -422,7 +523,13 @@ async def receive_rates(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parts = [p.strip() for p in line.split(",")]
             tiers.append((float(parts[0]), float(parts[1]), int(parts[2])))
     except Exception:
-        await update.message.reply_text("❌ Invalid format. Use `min,max,rate` per line.")
+        msg = await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="❌ *Invalid format. Use `min,max,rate` per line.*",
+            parse_mode="Markdown",
+            reply_markup=admin_cancel_keyboard(),
+        )
+        context.user_data["admin_prompt_msg_id"] = msg.message_id
         return ADMIN_AWAIT_RATES
 
     await Database.set_setting("rate_tier_1_min",  str(tiers[0][0]))
@@ -434,7 +541,6 @@ async def receive_rates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await Database.set_setting("rate_tier_3_min",  str(tiers[2][0]))
     await Database.set_setting("rate_tier_3_rate", str(tiers[2][2]))
 
-    await _delete(update.message)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=(
@@ -507,12 +613,13 @@ async def prompt_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await _delete(query.message)
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="✅ *Enter the Order ID to approve:*\n\n_(e.g. `CRB-20260306-ABC123`)_",
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_APPROVE
 
 
@@ -520,6 +627,13 @@ async def receive_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     order_id = update.message.text.strip().upper()
     order    = await Database.approve_order(order_id)
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
 
     if not order:
         await context.bot.send_message(
@@ -558,12 +672,13 @@ async def prompt_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await _delete(query.message)
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="❌ *Enter the Order ID to reject:*\n\n_(e.g. `CRB-20260306-ABC123`)_",
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_REJECT
 
 
@@ -571,6 +686,13 @@ async def receive_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     order_id = update.message.text.strip().upper()
     order    = await Database.reject_order(order_id)
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
 
     if not order:
         await context.bot.send_message(
@@ -605,85 +727,163 @@ async def receive_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ── User Stats ─────────────────────────────────────────────────────────────
+# ── User Stats ─────────────────────────────────────────────────────────────
 async def prompt_user_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await _delete(query.message)
-    await context.bot.send_message(
+    
+    return await show_admin_user_list(update, context, page=0)
+
+async def show_admin_user_list(update: Update, context: ContextTypes.DEFAULT_TYPE, page: int = 0):
+    limit = 10
+    offset = page * limit
+    users = await Database.get_users_list(offset=offset, limit=limit)
+    total_users = await Database.get_users_count()
+    
+    buttons = []
+    # User buttons
+    for u in users:
+        name = u.get("full_name") or u.get("username") or str(u.get("user_id"))
+        buttons.append([InlineKeyboardButton(f"👤 {name}", callback_data=f"adm_stats_u_{u['user_id']}")])
+    
+    # Pagination row
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"adm_stats_p_{page-1}"))
+    if offset + limit < total_users:
+        nav.append(InlineKeyboardButton("Next ➡️", callback_data=f"adm_stats_p_{page+1}"))
+    if nav:
+        buttons.append(nav)
+    
+    buttons.append([InlineKeyboardButton("📝 Enter User ID Manually", callback_data="adm_stats_manual")])
+    buttons.append([InlineKeyboardButton("↩️ Back to Admin", callback_data="adm_back")])
+    
+    text = f"📊 *User List (Page {page+1})*\nTotal Users: {total_users}\n\nSelect a user to view their transaction history:"
+    
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="📊 *Enter the User ID to view stats:*\n\n_(e.g. `123456789`)_",
+        text=text,
         parse_mode="Markdown",
-        reply_markup=admin_cancel_keyboard(),
+        reply_markup=InlineKeyboardMarkup(buttons)
     )
-    return ADMIN_AWAIT_STATS_USER_ID
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
+    return ADMIN_AWAIT_STATS_USER_LIST
+
+async def admin_stats_pagination(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data == "adm_stats_manual":
+        await _delete(query.message)
+        msg = await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="📊 *Enter the User ID manually:*",
+            parse_mode="Markdown",
+            reply_markup=admin_cancel_keyboard()
+        )
+        context.user_data["admin_prompt_msg_id"] = msg.message_id
+        return ADMIN_AWAIT_STATS_USER_ID
+
+    if query.data.startswith("adm_stats_p_"):
+        page = int(query.data.split("_")[-1])
+        await _delete(query.message)
+        return await show_admin_user_list(update, context, page=page)
+    
+    if query.data.startswith("adm_stats_u_"):
+        user_id = int(query.data.split("_")[-1])
+        await _delete(query.message)
+        return await show_user_transactions(update, context, user_id, page=0)
+    
+    return ADMIN_AWAIT_STATS_USER_LIST
+
+async def show_user_transactions(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, page: int = 0):
+    limit = 5
+    offset = page * limit
+    orders = await Database.get_user_orders(user_id, limit=100)
+    
+    total_orders = len(orders)
+    p_orders = orders[offset:offset+limit]
+    
+    user_data = await Database.get_user(user_id)
+    if not user_data:
+        name = str(user_id)
+    else:
+        name = user_data.get("full_name") or user_data.get("username") or str(user_id)
+    
+    if not p_orders and page == 0:
+        text = f"📊 *User*: `{user_id}` ({name})\n\nNo transactions found."
+    else:
+        text = f"📊 *Transactions for {name}* (`{user_id}`)\n"
+        text += f"Page {page+1} / {max(1, (total_orders-1)//limit + 1)}\n"
+        text += "━━━━━━━━━━━━━━━━━━━━\n\n"
+        
+        for o in p_orders:
+            status_emoji = {"approved": "✅", "pending": "⏳", "rejected": "❌", "awaiting_payment": "🔘"}.get(o["status"], "❓")
+            created = o.get("created_at", "—")
+            if created != "—": created = created.split("T")[0]
+            
+            text += f"{status_emoji} `{o['order_id']}` ({created})\n"
+            text += f"   💰 ${float(o['amount_usd']):g} | {o['network']} | 💳 {o.get('payment_method') or '—'}\n\n"
+            
+    buttons = []
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"adm_tr_p_{user_id}_{page-1}"))
+    if offset + limit < total_orders:
+        nav.append(InlineKeyboardButton("Next ➡️", callback_data=f"adm_tr_p_{user_id}_{page+1}"))
+    if nav:
+        buttons.append(nav)
+        
+    buttons.append([InlineKeyboardButton("↩️ Back to User List", callback_data="adm_stats_p_0")])
+    buttons.append([InlineKeyboardButton("↩️ Back to Admin", callback_data="adm_back")])
+    
+    msg = await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
+    return ADMIN_AWAIT_STATS_USER_TRANS
+
+async def admin_trans_pagination(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data.startswith("adm_tr_p_"):
+        parts = query.data.split("_")
+        user_id = int(parts[3])
+        page = int(parts[4])
+        await _delete(query.message)
+        return await show_user_transactions(update, context, user_id, page=page)
+    
+    return ADMIN_AWAIT_STATS_USER_TRANS
 
 
 async def receive_user_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id_str = update.message.text.strip()
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception: pass
+        context.user_data.pop("admin_prompt_msg_id", None)
 
     try:
         user_id = int(user_id_str)
     except ValueError:
-        await context.bot.send_message(
+        msg = await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="❌ Invalid User ID. Please enter a valid number.",
-            reply_markup=admin_home_keyboard(),
-        )
-        return ADMIN_HOME
-
-    user = await Database.get_user(user_id)
-    if not user:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"❌ User `{user_id}` not found in the database.",
+            text="❌ *Invalid User ID. Please send digits only.*",
             parse_mode="Markdown",
-            reply_markup=admin_home_keyboard(),
+            reply_markup=admin_cancel_keyboard()
         )
-        return ADMIN_HOME
+        context.user_data["admin_prompt_msg_id"] = msg.message_id
+        return ADMIN_AWAIT_STATS_USER_ID
 
-    orders = await Database.get_user_orders(user_id)
-
-    username_raw = user.get("username")
-    username_str = f"@{username_raw}".replace("_", "\\_") if username_raw else "—"
-    
-    full_name_raw = str(user.get("full_name") or "—")
-    full_name_str = full_name_raw.replace("_", "\\_").replace("*", "\\*").replace("`", "\\`")
-
-    text = (
-        f"📊 *User Statistics*\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🆔 User ID: `{user.get('user_id', user_id)}`\n"
-        f"👤 Username: {username_str}\n"
-        f"📛 Name: {full_name_str}\n"
-        f"💰 Total Bought: *${float(user.get('total_buys') or 0):,.2f}*\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"📦 *Transaction History:*\n\n"
-    )
-
-    if not orders:
-        text += "_No transactions found._"
-    else:
-        for o in orders:
-            status_emoji = {"approved": "✅", "pending": "⏳", "rejected": "❌", "awaiting_payment": "🔘"}.get(o["status"], "❓")
-            created = o.get("created_at", "—")
-            if created != "—":
-                created = created.split("T")[0]
-                
-            text += (
-                f"{status_emoji} `{o['order_id']}` ({created})\n"
-                f"   💰 ${float(o['amount_usd']):,.2f} | {o['network']} | 💳 {o.get('payment_method') or '—'}\n"
-            )
-
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=text,
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("↩️ Admin Menu", callback_data="adm_back")],
-        ]),
-    )
-    return ADMIN_VIEW_ORDERS
+    return await show_user_transactions(update, context, user_id, page=0)
 
 
 # ── Proof channel ──────────────────────────────────────────────────
@@ -692,7 +892,7 @@ async def prompt_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     await _delete(query.message)
     cur = await Database.get_setting("proof_channel_id", "Not set")
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=(
             f"📢 *Proof Channel*\n\n"
@@ -704,6 +904,7 @@ async def prompt_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
         reply_markup=admin_cancel_keyboard(),
     )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
     return ADMIN_AWAIT_CHANNEL
 
 
@@ -711,6 +912,13 @@ async def receive_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     val = update.message.text.strip()
     await Database.set_setting("proof_channel_id", val)
     await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"✅ Proof channel set to `{val}`",
@@ -762,7 +970,19 @@ def get_admin_conversation() -> ConversationHandler:
             ADMIN_AWAIT_PAY_INFO_TEXT:   [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_pay_info_text), back_btn],
             ADMIN_AWAIT_APPROVE:     [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_approve), back_btn],
             ADMIN_AWAIT_REJECT:      [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_reject), back_btn],
-            ADMIN_AWAIT_STATS_USER_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_user_stats), back_btn],
+            ADMIN_AWAIT_STATS_USER_ID: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_user_stats), 
+                back_btn
+            ],
+            ADMIN_AWAIT_STATS_USER_LIST: [
+                CallbackQueryHandler(admin_stats_pagination, pattern="^adm_stats_"),
+                back_btn
+            ],
+            ADMIN_AWAIT_STATS_USER_TRANS: [
+                CallbackQueryHandler(admin_trans_pagination, pattern="^adm_tr_p_"),
+                CallbackQueryHandler(show_admin_user_list, pattern="^adm_stats_p_0$"),
+                back_btn
+            ],
             ADMIN_AWAIT_RATES:       [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_rates), back_btn],
             ADMIN_AWAIT_CHANNEL:     [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_channel), back_btn],
             ADMIN_VIEW_ORDERS:       [back_btn],

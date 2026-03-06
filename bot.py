@@ -20,14 +20,14 @@ logger = logging.getLogger(__name__)
 def build_app() -> Application:
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # Admin conversation — first priority
-    app.add_handler(get_admin_conversation())
-
-    # Channel approve/reject (works from channel AND DM buttons)
+    # 1. Channel approve/reject (Highest priority)
     for handler in channel_handlers():
         app.add_handler(handler)
 
-    # Buy conversation
+    # 2. Admin conversation
+    app.add_handler(get_admin_conversation())
+
+    # 3. Buy conversation
     app.add_handler(get_buy_conversation())
 
     # Simple callback handlers

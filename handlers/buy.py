@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
     CHOOSE_PAYMENT_METHOD,
     AWAIT_PAYMENT_PROOF,
     AWAIT_SCREENSHOT,
-) = range(6)
+    AWAIT_UTR,
+) = range(7)
 
 NETWORK_LABELS = {
     "bep20": "🟡 BEP20 (BSC)",
@@ -39,8 +40,8 @@ NETWORK_LABELS = {
 async def _delete(msg):
     try:
         await msg.delete()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to delete message {msg.message_id}: {e}")
 
 
 # ── Entry: user taps "Buy Crypto" ─────────────────────────────────────────────
@@ -65,7 +66,7 @@ async def buy_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ))
 
     if buy_photo:
-        await context.bot.send_photo(
+        msg = await context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=buy_photo,
             caption=text,
@@ -73,12 +74,14 @@ async def buy_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=amount_entry_keyboard(),
         )
     else:
-        await context.bot.send_message(
+        msg = await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=text,
             parse_mode="Markdown",
             reply_markup=amount_entry_keyboard(),
         )
+        
+    context.user_data["last_bot_message_id"] = msg.message_id
     return ENTER_AMOUNT
 
 
@@ -97,6 +100,15 @@ async def view_rates_popup(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def enter_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     raw = update.message.text.strip().replace("$", "").replace(",", "")
     await _delete(update.message)
+
+    # Clean up the previous bot prompt (the photo/text asking for amount)
+    last_bot_msg_id = context.user_data.get("last_bot_message_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("last_bot_message_id", None)
 
     try:
         amount_usd = float(raw)
@@ -127,15 +139,6 @@ async def enter_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["amount_inr"] = amount_inr
     context.user_data["rate_used"]  = rate
 
-    # Clean up the previous bot prompt (the photo/text asking for amount)
-    last_bot_msg_id = context.user_data.get("last_bot_message_id")
-    if last_bot_msg_id:
-        try:
-            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
-        except Exception:
-            pass
-        context.user_data.pop("last_bot_message_id", None)
-
     # Now ask for network
     msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -164,7 +167,7 @@ async def choose_network(update: Update, context: ContextTypes.DEFAULT_TYPE):
     net_label = NETWORK_LABELS.get(network, network.upper())
     
     # Prompt for Receiving Address
-    await context.bot.send_message(
+    msg = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=(
             f"🏦 *Enter Receiving Details*\n\n"
@@ -174,6 +177,7 @@ async def choose_network(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
         reply_markup=back_to_main(),
     )
+    context.user_data["last_bot_message_id"] = msg.message_id
     return ENTER_ADDRESS
 
 
@@ -181,6 +185,15 @@ async def choose_network(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def enter_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_address = update.message.text.strip()
     await _delete(update.message)
+
+    # Clean up the previous bot prompt
+    last_bot_msg_id = context.user_data.get("last_bot_message_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("last_bot_message_id", None)
 
     context.user_data["user_address"] = user_address
 
@@ -190,11 +203,12 @@ async def enter_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
     network    = context.user_data.get("network")
 
     if not all([amount_usd, network]):
-        await context.bot.send_message(
+        msg = await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="❌ Session expired. Please /start again.",
             reply_markup=back_to_main(),
         )
+        context.user_data["last_bot_message_id"] = msg.message_id
         return ConversationHandler.END
 
     net_label = NETWORK_LABELS.get(network, network.upper())
@@ -213,15 +227,6 @@ async def enter_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
     })
 
     context.user_data["current_order_id"] = order_id
-
-    # Clean up the previous bot prompt
-    last_bot_msg_id = context.user_data.get("last_bot_message_id")
-    if last_bot_msg_id:
-        try:
-            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
-        except Exception:
-            pass
-        context.user_data.pop("last_bot_message_id", None)
 
     # Ask for Payment Method instead of directly showing receipt
     msg = await context.bot.send_message(
@@ -308,9 +313,41 @@ async def prompt_payment_proof(update: Update, context: ContextTypes.DEFAULT_TYP
     await query.answer()
     await _delete(query.message)
 
-    order_id = context.user_data.get("current_order_id", "N/A")
-    context.user_data["awaiting_screenshot"] = True
-    
+    method = context.user_data.get("payment_method", "UPI")
+
+    if method == "IMPS":
+        msg = await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=(
+                f"🖼 *Send Payment Screenshot*\n\n"
+                f"🆔 Order: `{order_id}`\n\n"
+                f"Please upload the **screenshot** of your IMPS payment now:"
+            ),
+            parse_mode="Markdown",
+            reply_markup=back_to_main(),
+        )
+        context.user_data["last_bot_message_id"] = msg.message_id
+        return AWAIT_SCREENSHOT
+    else:
+        # UPI - Ask for 12-digit UTR
+        msg = await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=(
+                f"📝 *Submit UTR Number*\n\n"
+                f"🆔 Order: `{order_id}`\n\n"
+                f"Please enter your **12-digit UTR number** from your UPI transaction:"
+            ),
+            parse_mode="Markdown",
+            reply_markup=back_to_main(),
+        )
+        context.user_data["last_bot_message_id"] = msg.message_id
+        return AWAIT_UTR
+
+
+# ── Step 6: Screenshot photo received ────────────────────────────────────────────
+async def save_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _delete(update.message)
+
     # Clean up the previous bot prompt
     last_bot_msg_id = context.user_data.get("last_bot_message_id")
     if last_bot_msg_id:
@@ -320,22 +357,6 @@ async def prompt_payment_proof(update: Update, context: ContextTypes.DEFAULT_TYP
             pass
         context.user_data.pop("last_bot_message_id", None)
 
-    msg = await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=(
-            f"🖼 *Send Payment Screenshot*\n\n"
-            f"🆔 Order: `{order_id}`\n\n"
-            f"Please send the screenshot of your payment now:"
-        ),
-        parse_mode="Markdown",
-        reply_markup=back_to_main(),
-    )
-    context.user_data["last_bot_message_id"] = msg.message_id
-    return AWAIT_SCREENSHOT
-
-
-# ── Step 6: Screenshot photo received ────────────────────────────────────────────
-async def save_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get("awaiting_screenshot"):
         msg = await update.message.reply_text(
             "Please tap ✅ *I HAVE PAID* button first.",
@@ -350,24 +371,14 @@ async def save_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     method   = context.user_data.get("payment_method", "UNKNOWN")
 
     if not order_id:
-        await update.message.reply_text(
+        msg = await update.message.reply_text(
             "❌ Session expired. Please /start again.",
             reply_markup=back_to_main(),
         )
+        context.user_data["last_bot_message_id"] = msg.message_id
         context.user_data.clear()
         return ConversationHandler.END
 
-    await _delete(update.message)
-    
-    # Clean up the previous bot prompt
-    last_bot_msg_id = context.user_data.get("last_bot_message_id")
-    if last_bot_msg_id:
-        try:
-            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
-        except Exception:
-            pass
-        context.user_data.pop("last_bot_message_id", None)
-        
     await Database.update_order_payment(order_id, method, file_id)
 
     amount_usd   = context.user_data.get("amount_usd", 0)
@@ -438,6 +449,79 @@ async def save_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
+async def receive_utr(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    utr = update.message.text.strip()
+    await _delete(update.message)
+
+    # Clean up the previous bot prompt
+    last_bot_msg_id = context.user_data.get("last_bot_message_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("last_bot_message_id", None)
+
+    order_id = context.user_data.get("current_order_id")
+    amount   = context.user_data.get("amount_usd")
+    address  = context.user_data.get("user_address")
+    
+    if not order_id:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="❌ Session expired. Please /start again.",
+            reply_markup=back_to_main(),
+        )
+        return ConversationHandler.END
+
+    if not (utr.isdigit() and len(utr) == 12):
+        msg = await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="❌ *Invalid UTR Number*. Please enter exactly 12 digits.",
+            parse_mode="Markdown",
+            reply_markup=back_to_main(),
+        )
+        context.user_data["last_bot_message_id"] = msg.message_id
+        return AWAIT_UTR
+
+    await Database.update_order_payment(order_id, "UPI", f"UTR: {utr}")
+
+    proof_text = (
+        f"🆕 *NEW UPI ORDER PENDING*\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🆔 Order ID:  `{order_id}`\n"
+        f"💰 Amount:   *${amount:,.2f}*\n"
+        f"🏦 Details:  `{address}`\n"
+        f"💳 Method:   *UPI*\n"
+        f"📝 UTR:      `{utr}`\n"
+        f"👤 User ID:   `{update.effective_user.id}`\n"
+        f"━━━━━━━━━━━━━━━━━━━━"
+    )
+
+    proof_channel = await Database.get_setting("proof_channel_id", "")
+    if proof_channel:
+        try:
+            await context.bot.send_message(chat_id=proof_channel, text=proof_text, parse_mode="Markdown", reply_markup=channel_order_keyboard(order_id))
+        except Exception: pass
+
+    for admin_id in ADMIN_IDS:
+        try:
+            await context.bot.send_message(chat_id=admin_id, text=proof_text, parse_mode="Markdown", reply_markup=channel_order_keyboard(order_id))
+        except Exception: pass
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=(
+            f"✅ *Verification Submitted!*\n\n"
+            f"Our team will verify your payment within 10-20 minutes. "
+            f"You will be notified once crypto is sent."
+        ),
+        parse_mode="Markdown",
+        reply_markup=back_to_main(),
+    )
+    return ConversationHandler.END
+
+
 # ── Cancel / fallback back to main menu ───────────────────────────────────────
 async def cancel_sell(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
@@ -479,6 +563,9 @@ def get_buy_conversation() -> ConversationHandler:
             ],
             AWAIT_SCREENSHOT: [
                 MessageHandler(filters.PHOTO, save_screenshot),
+            ],
+            AWAIT_UTR: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_utr),
             ],
         },
         fallbacks=[

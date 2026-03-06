@@ -21,16 +21,16 @@ class Database:
     async def get_or_create_user(user_id: int, username: str, full_name: str) -> dict:
         def _query():
             try:
-                res = _client.table("users").select("*").eq("user_id", user_id).maybe_single().execute()
-                if res.data:
-                    _client.table("users").update(
-                        {"username": username, "full_name": full_name}
-                    ).eq("user_id", user_id).execute()
-                    return res.data
-                else:
-                    payload = {"user_id": user_id, "username": username, "full_name": full_name}
-                    r = _client.table("users").insert(payload).execute()
-                    return r.data[0] if r.data else payload
+                # Upsert user info
+                res = _client.table("users").upsert({
+                    "user_id": user_id,
+                    "username": username,
+                    "full_name": full_name
+                }, on_conflict="user_id").execute()
+                
+                # Fetch the full record to ensure all defaults and joined_at are present
+                fresh = _client.table("users").select("*").eq("user_id", user_id).maybe_single().execute()
+                return fresh.data or {}
             except Exception as e:
                 logger.error(f"get_or_create_user error: {e}")
                 return {}
@@ -241,4 +241,26 @@ class Database:
             except Exception as e:
                 logger.error(f"get_stats error: {e}")
                 return {}
+        return await _run(_query)
+
+    @staticmethod
+    async def get_users_list(offset: int = 0, limit: int = 10) -> list:
+        def _query():
+            try:
+                res = _client.table("users").select("*").order("joined_at", desc=True).range(offset, offset + limit - 1).execute()
+                return res.data or []
+            except Exception as e:
+                logger.error(f"get_users_list error: {e}")
+                return []
+        return await _run(_query)
+
+    @staticmethod
+    async def get_users_count() -> int:
+        def _query():
+            try:
+                res = _client.table("users").select("user_id", count="exact").execute()
+                return res.count or 0
+            except Exception as e:
+                logger.error(f"get_users_count error: {e}")
+                return 0
         return await _run(_query)
