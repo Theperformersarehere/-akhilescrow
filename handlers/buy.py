@@ -443,11 +443,10 @@ async def save_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=(
-            f"**Utr successfully submitted**\n"
+            f"✅ **Verification successfully submitted**\n"
             f"**wait 15-20 minutes the payment will be checked and done**"
         ),
         parse_mode="Markdown",
-        reply_markup=back_to_main(),
     )
     return ConversationHandler.END
 
@@ -520,7 +519,6 @@ async def receive_utr(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"You will be notified once crypto is sent."
         ),
         parse_mode="Markdown",
-        reply_markup=back_to_main(),
     )
     return ConversationHandler.END
 
