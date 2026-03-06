@@ -346,12 +346,15 @@ class Database:
                 u_res = _client.table("users").select("user_id", count="exact").execute()
                 o_res = _client.table("orders").select("amount_usd,status", count="exact").execute()
                 total_usd = 0.0
-                succ = pend = rej = 0
                 for o in (o_res.data or []):
-                    total_usd += float(o.get("amount_usd") or 0)
-                    if o.get("status") == "approved": succ += 1
-                    elif o.get("status") == "pending": pend += 1
-                    elif o.get("status") == "rejected": rej += 1
+                    status = o.get("status")
+                    if status == "approved":
+                        succ += 1
+                        total_usd += float(o.get("amount_usd") or 0)
+                    elif status == "pending":
+                        pend += 1
+                    elif status == "rejected":
+                        rej += 1
                 return {
                     "total_users": u_res.count or 0,
                     "total_orders": o_res.count or 0,

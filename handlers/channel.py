@@ -34,8 +34,12 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         addr   = html.escape(str(order.get('wallet_address', '—')))
         utr    = html.escape(str(order.get('screenshot_id', '—')))
         uid    = str(order.get('user_id', 'Unknown'))
-        amt    = 0
-        try: amt = float(order.get('amount_usd', 0))
+        
+        amt = 0
+        amt_inr = 0
+        try: 
+            amt = float(order.get('amount_usd', 0))
+            amt_inr = float(order.get('amount_inr', 0))
         except: pass
 
         logger.info(f"Order {order_id} fetched successfully. Attempting to edit channel message...")
@@ -48,6 +52,7 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"🆔 Order ID:  <code>{o_id}</code>\n"
                     f"💰 Amount:   <b>${amt:,.2f}</b>\n"
+                    f"🇮🇳 Paid:     <b>₹{amt_inr:,.0f}</b>\n"
                     f"🏦 Details:  <code>{addr}</code>\n"
                     f"💳 Method:   <b>{method}</b>\n"
                     f"✍️ UTR:      <b>{utr}</b>\n"
@@ -70,7 +75,8 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     text=(
                         f"✅ <b>Payment Approved!</b>\n\n"
                         f"🆔 Order: <code>{o_id}</code>\n"
-                        f"💰 ${amt:,.2f}\n\n"
+                        f"💰 Amount: <b>${amt:,.2f}</b>\n"
+                        f"🇮🇳 Paid: <b>₹{amt_inr:,.0f}</b>\n\n"
                         f"Your crypto will be sent to your given details shortly. Thank you! 🙏"
                     ),
                     parse_mode="HTML",
@@ -112,8 +118,12 @@ async def channel_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
         addr   = html.escape(str(order.get('wallet_address', '—')))
         utr    = html.escape(str(order.get('screenshot_id', '—')))
         uid    = str(order.get('user_id', 'Unknown'))
-        amt    = 0
-        try: amt = float(order.get('amount_usd', 0))
+        
+        amt = 0
+        amt_inr = 0
+        try: 
+            amt = float(order.get('amount_usd', 0))
+            amt_inr = float(order.get('amount_inr', 0))
         except: pass
 
         logger.info(f"Order {order_id} fetched successfully. Attempting to edit channel message...")
@@ -126,6 +136,7 @@ async def channel_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"🆔 Order ID:  <code>{o_id}</code>\n"
                     f"💰 Amount:   <b>${amt:,.2f}</b>\n"
+                    f"🇮🇳 Paid:     <b>₹{amt_inr:,.0f}</b>\n"
                     f"🏦 Details:  <code>{addr}</code>\n"
                     f"💳 Method:   <b>{method}</b>\n"
                     f"✍️ UTR:      <b>{utr}</b>\n"
