@@ -488,6 +488,12 @@ async def receive_utr(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await Database.update_order_payment(order_id, "UPI", f"UTR: {utr}")
 
+    # Escape markdown characters
+    user = update.effective_user
+    _raw_name = user.username if user.username else user.full_name
+    _clean_name = str(_raw_name).replace("_", "\\_").replace("*", "\\*").replace("`", "\\`")
+    username_str = f"@{_clean_name}" if user.username else _clean_name
+
     proof_text = (
         f"🆕 *NEW UPI ORDER PENDING*\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -496,7 +502,9 @@ async def receive_utr(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🏦 Details:  `{address}`\n"
         f"💳 Method:   *UPI*\n"
         f"📝 UTR:      `{utr}`\n"
-        f"👤 User ID:   `{update.effective_user.id}`\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 User:      {username_str}\n"
+        f"🪪 User ID:   `{user.id}`\n"
         f"━━━━━━━━━━━━━━━━━━━━"
     )
 

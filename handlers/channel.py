@@ -7,6 +7,8 @@ from database import Database
 logger = logging.getLogger(__name__)
 
 
+import html
+
 async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer("Processing approval...", show_alert=False)
@@ -21,10 +23,10 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer("❌ Order not found or already processed.", show_alert=True)
             return
 
-        # Escape fields for markdown safety
-        o_id   = str(order_id).replace("_", "\\_")
-        method = str(order.get('payment_method', '—')).replace("_", "\\_")
-        addr   = str(order.get('user_receiving_address', '—')).replace("_", "\\_").replace("*", "\\*")
+        # Prepare fields
+        o_id   = html.escape(str(order_id))
+        method = html.escape(str(order.get('payment_method', '—')))
+        addr   = html.escape(str(order.get('user_receiving_address', '—')))
         uid    = str(order['user_id'])
         amt    = float(order['amount_usd'])
 
@@ -32,17 +34,17 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await query.edit_message_caption(
                 caption=(
-                    f"✅ *APPROVED*\n"
+                    f"✅ <b>APPROVED</b>\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🆔 Order ID:  `{o_id}`\n"
-                    f"💰 Amount:   *${amt:,.2f}*\n"
-                    f"🏦 Details:  `{addr}`\n"
-                    f"💳 Method:   *{method}*\n"
-                    f"👤 User ID:  `{uid}`\n"
+                    f"🆔 Order ID:  <code>{o_id}</code>\n"
+                    f"💰 Amount:   <b>${amt:,.2f}</b>\n"
+                    f"🏦 Details:  <code>{addr}</code>\n"
+                    f"💳 Method:   <b>{method}</b>\n"
+                    f"👤 User ID:  <code>{uid}</code>\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"✅ Approved and user notified."
                 ),
-                parse_mode="Markdown",
+                parse_mode="HTML",
             )
         except Exception as e:
             logger.error(f"Failed to edit channel message on approve: {e}")
@@ -52,12 +54,12 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(
                 chat_id=order["user_id"],
                 text=(
-                    f"✅ *Payment Approved!*\n\n"
-                    f"🆔 Order: `{o_id}`\n"
+                    f"✅ <b>Payment Approved!</b>\n\n"
+                    f"🆔 Order: <code>{o_id}</code>\n"
                     f"💰 ${amt:,.2f}\n\n"
                     f"Your crypto will be sent to your given details shortly. Thank you! 🙏"
                 ),
-                parse_mode="Markdown",
+                parse_mode="HTML",
             )
         except Exception as e:
             logger.error(f"Failed to notify user on approve: {e}")
@@ -81,10 +83,10 @@ async def channel_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer("❌ Order not found or already processed.", show_alert=True)
             return
 
-        # Escape fields
-        o_id   = str(order_id).replace("_", "\\_")
-        method = str(order.get('payment_method', '—')).replace("_", "\\_")
-        addr   = str(order.get('user_receiving_address', '—')).replace("_", "\\_").replace("*", "\\*")
+        # Prepare fields
+        o_id   = html.escape(str(order_id))
+        method = html.escape(str(order.get('payment_method', '—')))
+        addr   = html.escape(str(order.get('user_receiving_address', '—')))
         uid    = str(order['user_id'])
         amt    = float(order['amount_usd'])
 
@@ -92,17 +94,17 @@ async def channel_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await query.edit_message_caption(
                 caption=(
-                    f"❌ *REJECTED*\n"
+                    f"❌ <b>REJECTED</b>\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🆔 Order ID:  `{o_id}`\n"
-                    f"💰 Amount:   *${amt:,.2f}*\n"
-                    f"🏦 Details:  `{addr}`\n"
-                    f"💳 Method:   *{method}*\n"
-                    f"👤 User ID:  `{uid}`\n"
+                    f"🆔 Order ID:  <code>{o_id}</code>\n"
+                    f"💰 Amount:   <b>${amt:,.2f}</b>\n"
+                    f"🏦 Details:  <code>{addr}</code>\n"
+                    f"💳 Method:   <b>{method}</b>\n"
+                    f"👤 User ID:  <code>{uid}</code>\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"❌ Rejected and user notified."
                 ),
-                parse_mode="Markdown",
+                parse_mode="HTML",
             )
         except Exception as e:
             logger.error(f"Failed to edit channel message on reject: {e}")
@@ -112,12 +114,12 @@ async def channel_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(
                 chat_id=order["user_id"],
                 text=(
-                    f"❌ *Payment Rejected*\n\n"
-                    f"🆔 Order: `{o_id}`\n\n"
+                    f"❌ <b>Payment Rejected</b>\n\n"
+                    f"🆔 Order: <code>{o_id}</code>\n\n"
                     f"Your payment could not be verified. "
                     f"Please contact support for assistance."
                 ),
-                parse_mode="Markdown",
+                parse_mode="HTML",
             )
         except Exception as e:
             logger.error(f"Failed to notify user on reject: {e}")
