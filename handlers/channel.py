@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    # We answer immediately to satisfy Telegram, but don't show alert yet unless it's a slow process
     await query.answer("Processing approval...", show_alert=False)
 
     try:
@@ -25,7 +24,7 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         order = await Database.approve_order(order_id)
 
         if not order:
-            logger.warning(f"Order {order_id} not found in DB during appproval.")
+            logger.warning(f"Order {order_id} not found in DB during approval.")
             await query.answer("❌ Order not found in database.", show_alert=True)
             return
 
@@ -33,6 +32,7 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         o_id   = html.escape(str(order_id))
         method = html.escape(str(order.get('payment_method', '—')))
         addr   = html.escape(str(order.get('wallet_address', '—')))
+        utr    = html.escape(str(order.get('screenshot_id', '—')))
         uid    = str(order.get('user_id', 'Unknown'))
         amt    = 0
         try: amt = float(order.get('amount_usd', 0))
@@ -50,6 +50,7 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"💰 Amount:   <b>${amt:,.2f}</b>\n"
                     f"🏦 Details:  <code>{addr}</code>\n"
                     f"💳 Method:   <b>{method}</b>\n"
+                    f"✍️ UTR:      <b>{utr}</b>\n"
                     f"👤 User ID:  <code>{uid}</code>\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"✅ Approved and user notified."
@@ -109,6 +110,7 @@ async def channel_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
         o_id   = html.escape(str(order_id))
         method = html.escape(str(order.get('payment_method', '—')))
         addr   = html.escape(str(order.get('wallet_address', '—')))
+        utr    = html.escape(str(order.get('screenshot_id', '—')))
         uid    = str(order.get('user_id', 'Unknown'))
         amt    = 0
         try: amt = float(order.get('amount_usd', 0))
@@ -126,6 +128,7 @@ async def channel_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"💰 Amount:   <b>${amt:,.2f}</b>\n"
                     f"🏦 Details:  <code>{addr}</code>\n"
                     f"💳 Method:   <b>{method}</b>\n"
+                    f"✍️ UTR:      <b>{utr}</b>\n"
                     f"👤 User ID:  <code>{uid}</code>\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"❌ Rejected and user notified."

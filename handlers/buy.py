@@ -442,18 +442,7 @@ async def save_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"Failed to post to proof channel: {e}")
 
-    # ── Notify individual admins (DM) ─────────────────────────────────────────
-    for admin_id in ADMIN_IDS:
-        try:
-            await context.bot.send_photo(
-                chat_id=admin_id,
-                photo=file_id,
-                caption=proof_text,
-                parse_mode="Markdown",
-                reply_markup=channel_order_keyboard(order_id),
-            )
-        except Exception:
-            pass
+    # context.user_data.clear() -- Removed redundant DM notifications to admins
 
     context.user_data.clear()
 
@@ -533,16 +522,20 @@ async def receive_utr(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"━━━━━━━━━━━━━━━━━━━━"
     )
 
+    # Save to DB so channel approve/reject can see it
+    await Database.update_order_payment(order_id, "UPI", utr)
+
     proof_channel = await Database.get_setting("proof_channel_id", "")
     if proof_channel:
         try:
             await context.bot.send_message(chat_id=proof_channel, text=proof_text, parse_mode="Markdown", reply_markup=channel_order_keyboard(order_id))
         except Exception: pass
 
-    for admin_id in ADMIN_IDS:
-        try:
-            await context.bot.send_message(chat_id=admin_id, text=proof_text, parse_mode="Markdown", reply_markup=channel_order_keyboard(order_id))
-        except Exception: pass
+    # Silenced individual admin DMs
+    # for admin_id in ADMIN_IDS:
+    #     try:
+    #         await context.bot.send_message(chat_id=admin_id, text=proof_text, parse_mode="Markdown", reply_markup=channel_order_keyboard(order_id))
+    #     except Exception: pass
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
