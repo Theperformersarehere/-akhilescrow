@@ -277,7 +277,8 @@ async def choose_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data.pop("last_bot_message_id", None)
 
     receipt = (
-        f"{pay_text}\n\n"
+        f"💳 *PAYMENT DETAILS (TAP TO COPY)*\n"
+        f"```\n{pay_text}\n```\n\n"
         f"📋 *Order Details*\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"🆔 Order ID:  `{order_id}`\n"
