@@ -108,33 +108,32 @@ class Database:
     async def approve_order(order_id: str) -> dict | None:
         def _query():
             try:
-                # 1. Fetch order first
-                res_f = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
-                order = res_f.data
-                if not order:
+                # 1. Fetch order using standard list query
+                res_f = _client.table("orders").select("*").eq("order_id", order_id).execute()
+                if not res_f or not hasattr(res_f, 'data') or not res_f.data:
                     logger.warning(f"approve_order: Order {order_id} not found.")
                     return None
                 
+                order = res_f.data[0]
+                
                 # 2. Update status
                 _client.table("orders").update({"status": "approved"}).eq("order_id", order_id).execute()
-                order["status"] = "approved" # Optimistic update for return
+                order["status"] = "approved"
 
-                # 3. Update user stats (independent attempt)
+                # 3. Update user stats
                 try:
                     uid = order.get("user_id")
                     if uid:
-                        u_res = _client.table("users").select("*").eq("user_id", uid).maybe_single().execute()
-                        if u_res.data:
-                            user_data = u_res.data
+                        u_res = _client.table("users").select("*").eq("user_id", uid).execute()
+                        if u_res and hasattr(u_res, 'data') and u_res.data:
+                            user_data = u_res.data[0]
                             succ = (user_data.get("successful_payments") or 0) + 1
                             prev_buys = 0
-                            try:
-                                prev_buys = float(user_data.get("total_buys") or 0)
+                            try: prev_buys = float(user_data.get("total_buys") or 0)
                             except: pass
                             
                             curr_amt = 0
-                            try:
-                                curr_amt = float(order.get("amount_usd") or 0)
+                            try: curr_amt = float(order.get("amount_usd") or 0)
                             except: pass
                             
                             _client.table("users").update({
@@ -142,7 +141,7 @@ class Database:
                                 "total_buys": prev_buys + curr_amt,
                             }).eq("user_id", uid).execute()
                 except Exception as user_err:
-                    logger.error(f"User stats update failed (non-critical): {user_err}")
+                    logger.error(f"User stats update failed: {user_err}")
                 
                 return order
             except Exception as e:
@@ -155,26 +154,27 @@ class Database:
         def _query():
             try:
                 # 1. Fetch order
-                res_f = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
-                order = res_f.data
-                if not order:
+                res_f = _client.table("orders").select("*").eq("order_id", order_id).execute()
+                if not res_f or not hasattr(res_f, 'data') or not res_f.data:
                     logger.warning(f"reject_order: Order {order_id} not found.")
                     return None
+                
+                order = res_f.data[0]
                 
                 # 2. Update status
                 _client.table("orders").update({"status": "rejected"}).eq("order_id", order_id).execute()
                 order["status"] = "rejected"
 
-                # 3. Update user stats (independent attempt)
+                # 3. Update user stats
                 try:
                     uid = order.get("user_id")
                     if uid:
-                        u_res = _client.table("users").select("rejected_payments").eq("user_id", uid).maybe_single().execute()
-                        if u_res.data:
-                            rejs = (u_res.data.get("rejected_payments") or 0) + 1
+                        u_res = _client.table("users").select("rejected_payments").eq("user_id", uid).execute()
+                        if u_res and hasattr(u_res, 'data') and u_res.data:
+                            rejs = (u_res.data[0].get("rejected_payments") or 0) + 1
                             _client.table("users").update({"rejected_payments": rejs}).eq("user_id", uid).execute()
                 except Exception as user_err:
-                    logger.error(f"User stats update failed (non-critical): {user_err}")
+                    logger.error(f"User stats update failed: {user_err}")
                 
                 return order
             except Exception as e:
