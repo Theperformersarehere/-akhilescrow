@@ -215,7 +215,7 @@ async def enter_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
     order_id  = generate_order_id()
 
     # Save order (status: awaiting_hash)
-    await Database.create_order({
+    order = await Database.create_order({
         "order_id":               order_id,
         "user_id":                update.effective_user.id,
         "network":                network.upper(),
@@ -225,6 +225,15 @@ async def enter_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "rate_used":              rate,
         "status":                 "awaiting_hash",
     })
+
+    if not order or not order.get("order_id"):
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="❌ **Database Error**: Failed to initialize your order. Please try again later.",
+            parse_mode="Markdown",
+            reply_markup=back_to_main(),
+        )
+        return ConversationHandler.END
 
     context.user_data["current_order_id"] = order_id
 
@@ -382,7 +391,15 @@ async def save_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.clear()
         return ConversationHandler.END
 
-    await Database.update_order_payment(order_id, method, file_id)
+    success = await Database.update_order_payment(order_id, method, file_id)
+    if not success:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="❌ **Error**: Failed to update order status. Please contact support.",
+            parse_mode="Markdown",
+            reply_markup=back_to_main(),
+        )
+        return ConversationHandler.END
 
     amount_usd   = context.user_data.get("amount_usd", 0)
     amount_inr   = context.user_data.get("amount_inr", 0)
@@ -486,7 +503,15 @@ async def receive_utr(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["last_bot_message_id"] = msg.message_id
         return AWAIT_UTR
 
-    await Database.update_order_payment(order_id, "UPI", f"UTR: {utr}")
+    success = await Database.update_order_payment(order_id, "UPI", f"UTR: {utr}")
+    if not success:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="❌ **Error**: Failed to update order status. Please contact support.",
+            parse_mode="Markdown",
+            reply_markup=back_to_main(),
+        )
+        return ConversationHandler.END
 
     # Escape markdown characters
     user = update.effective_user
