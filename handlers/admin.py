@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
     ADMIN_AWAIT_PROFILE_PHOTO,
     ADMIN_AWAIT_NETWORK_PHOTO,
     ADMIN_AWAIT_PAY_METHOD_PHOTO,
+    ADMIN_AWAIT_REFERRAL_PHOTO,
+    ADMIN_AWAIT_REFERRAL_LINK,
+    ADMIN_AWAIT_REFERRAL_CHANNEL,
     ADMIN_AWAIT_MAIN_TEXT,
     ADMIN_AWAIT_PAY_TEXT,
     ADMIN_AWAIT_SUPPORT,
@@ -35,7 +38,7 @@ logger = logging.getLogger(__name__)
     ADMIN_AWAIT_STATS_USER_ID,
     ADMIN_AWAIT_STATS_USER_LIST,
     ADMIN_AWAIT_STATS_USER_TRANS,
-) = range(22)
+) = range(25)
 
 
 # ── Guard ──────────────────────────────────────────────────────────────────────
@@ -1165,6 +1168,119 @@ async def receive_pay_method_photo(update: Update, context: ContextTypes.DEFAULT
     return ADMIN_HOME
 
 
+
+# ── Referral settings ─────────────────────────────────────────────────────────
+async def prompt_referral_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await _delete(query.message)
+    msg = await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="🎁 *Send the photo to show on the Referral page:*",
+        parse_mode="Markdown",
+        reply_markup=admin_cancel_keyboard(),
+    )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
+    return ADMIN_AWAIT_REFERRAL_PHOTO
+
+
+async def receive_referral_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    file_id = update.message.photo[-1].file_id
+    await Database.set_setting("referral_photo", file_id)
+    await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="✅ Referral page photo updated!",
+        reply_markup=admin_home_keyboard(),
+    )
+    return ADMIN_HOME
+
+
+async def prompt_referral_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await _delete(query.message)
+    cur = await Database.get_setting("referral_link", "Not set")
+    msg = await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=(
+            f"🔗 *Set Referral Link*\n\n"
+            f"Current: `{cur}`\n\n"
+            f"Send the new referral/invite link:"
+        ),
+        parse_mode="Markdown",
+        reply_markup=admin_cancel_keyboard(),
+    )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
+    return ADMIN_AWAIT_REFERRAL_LINK
+
+
+async def receive_referral_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    val = update.message.text.strip()
+    await Database.set_setting("referral_link", val)
+    await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"✅ Referral link set to:\n`{val}`",
+        parse_mode="Markdown",
+        reply_markup=admin_home_keyboard(),
+    )
+    return ADMIN_HOME
+
+
+async def prompt_referral_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await _delete(query.message)
+    cur = await Database.get_setting("referral_channel", "Not set")
+    msg = await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=(
+            f"📢 *Set Support/Updates Channel*\n\n"
+            f"Current: `{cur}`\n\n"
+            f"Send the channel username or link (e.g. @MyCryptoBot or https://t.me/...):"
+        ),
+        parse_mode="Markdown",
+        reply_markup=admin_cancel_keyboard(),
+    )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
+    return ADMIN_AWAIT_REFERRAL_CHANNEL
+
+
+async def receive_referral_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    val = update.message.text.strip()
+    await Database.set_setting("referral_channel", val)
+    await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"✅ Referral channel set to: `{val}`",
+        parse_mode="Markdown",
+        reply_markup=admin_home_keyboard(),
+    )
+    return ADMIN_HOME
+
+
 # ── ConversationHandler factory ───────────────────────────────────────────────
 def get_admin_handlers():
     return [
@@ -1190,6 +1306,9 @@ def get_admin_conversation() -> ConversationHandler:
                 CallbackQueryHandler(prompt_profile_photo,     pattern="^adm_profile_photo$"),
                 CallbackQueryHandler(prompt_network_photo,     pattern="^adm_network_photo$"),
                 CallbackQueryHandler(prompt_pay_method_photo,  pattern="^adm_pay_method_photo$"),
+                CallbackQueryHandler(prompt_referral_photo,    pattern="^adm_referral_photo$"),
+                CallbackQueryHandler(prompt_referral_link,     pattern="^adm_referral_link$"),
+                CallbackQueryHandler(prompt_referral_channel,  pattern="^adm_referral_channel$"),
                 CallbackQueryHandler(prompt_support,           pattern="^adm_support$"),
                 CallbackQueryHandler(prompt_conv_msg,          pattern="^adm_conv_msg$"),
                 CallbackQueryHandler(prompt_pay_info,          pattern="^adm_(upi|imps)$"),
@@ -1209,6 +1328,9 @@ def get_admin_conversation() -> ConversationHandler:
             ADMIN_AWAIT_PROFILE_PHOTO:  [MessageHandler(filters.PHOTO, receive_profile_photo),  back_btn],
             ADMIN_AWAIT_NETWORK_PHOTO:  [MessageHandler(filters.PHOTO, receive_network_photo),  back_btn],
             ADMIN_AWAIT_PAY_METHOD_PHOTO: [MessageHandler(filters.PHOTO, receive_pay_method_photo), back_btn],
+            ADMIN_AWAIT_REFERRAL_PHOTO:  [MessageHandler(filters.PHOTO, receive_referral_photo), back_btn],
+            ADMIN_AWAIT_REFERRAL_LINK:   [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_referral_link), back_btn],
+            ADMIN_AWAIT_REFERRAL_CHANNEL:[MessageHandler(filters.TEXT & ~filters.COMMAND, receive_referral_channel), back_btn],
             ADMIN_AWAIT_SUPPORT:     [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_support), back_btn],
             ADMIN_AWAIT_CONV_MSG:    [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_conv_msg), back_btn],
             ADMIN_AWAIT_PAY_INFO_ACTION: [

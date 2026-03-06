@@ -6,8 +6,9 @@ def main_menu_keyboard(support_username: str = "@owner") -> InlineKeyboardMarkup
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("💰 BUY CRYPTO", callback_data="buy")],
         [
-            InlineKeyboardButton("📊 Stats",   callback_data="stats"),
-            InlineKeyboardButton("👤 Profile", callback_data="profile"),
+            InlineKeyboardButton("🎁 Referral",  callback_data="referral"),
+            InlineKeyboardButton("📊 Stats",     callback_data="stats"),
+            InlineKeyboardButton("👤 Profile",  callback_data="profile"),
         ],
         [InlineKeyboardButton("🆘 Support", url=support_url)],
     ])
@@ -95,6 +96,13 @@ def admin_home_keyboard() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton("📦 All Orders",    callback_data="adm_orders"),
             InlineKeyboardButton("⏳ Pending Only",  callback_data="adm_pending"),
+        ],
+        [
+            InlineKeyboardButton("🎁 Referral Photo",    callback_data="adm_referral_photo"),
+            InlineKeyboardButton("🔗 Referral Link",     callback_data="adm_referral_link"),
+        ],
+        [
+            InlineKeyboardButton("📢 Referral Channel", callback_data="adm_referral_channel"),
         ],
         [
             InlineKeyboardButton("📊 User Stats",    callback_data="adm_user_stats"),

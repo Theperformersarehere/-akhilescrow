@@ -10,6 +10,7 @@ from handlers.stats import get_handlers as stats_handlers
 from handlers.support import get_handlers as support_handlers
 from handlers.admin import get_admin_conversation
 from handlers.channel import get_handlers as channel_handlers
+from handlers.referral import get_handlers as referral_handlers
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(name)s — %(message)s",
@@ -42,6 +43,8 @@ def build_app() -> Application:
     for handler in stats_handlers():
         app.add_handler(handler)
     for handler in support_handlers():
+        app.add_handler(handler)
+    for handler in referral_handlers():
         app.add_handler(handler)
 
     logger.info(f"[{INSTANCE_ID}] All handlers registered.")
