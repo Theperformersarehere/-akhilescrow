@@ -314,6 +314,7 @@ async def prompt_payment_proof(update: Update, context: ContextTypes.DEFAULT_TYP
     await _delete(query.message)
 
     method = context.user_data.get("payment_method", "UPI")
+    order_id = context.user_data.get("current_order_id", "N/A")
 
     if method == "IMPS":
         msg = await context.bot.send_message(
