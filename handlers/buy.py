@@ -321,14 +321,14 @@ async def choose_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
     receipt = (
         f"💳 *PAYMENT DETAILS (TAP TO COPY)*\n"
         f"```\n{pay_text}\n```\n\n"
-        f"📋 *Order Details*\n"
+        f"*📋 Order Details*\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🆔 Order ID:  `{order_id}`\n"
-        f"💰 Receive:   *${amount_usd:,.2f}* ({net_label})\n"
-        f"🇮🇳 Pay:       *₹{amount_inr:,.0f}*  (@ ₹{rate}/$)\n"
-        f"🏦 To:        `{user_address}`\n"
+        f"*🆔 Order ID:*  `{order_id}`\n"
+        f"*💰 Receive:*   *${amount_usd:,.2f}* ({net_label})\n"
+        f"*🇮🇳 Pay:*       *₹{amount_inr:,.0f}*  (@ ₹{rate}/$)\n"
+        f"*🏦 To:*        `{user_address}`\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"⚡ Tap *Confirm Payment* after making the payment."
+        f"⚡ *Tap Confirm Payment after making the payment.*"
     )
 
     if pay_photo:
@@ -544,16 +544,17 @@ async def receive_utr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     proof_text = (
         f"🆕 *NEW UPI ORDER PENDING*\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🆔 Order ID:  `{order_id}`\n"
-        f"💰 Amount:   *${amount:,.2f}*\n"
-        f"🏦 Details:  `{address}`\n"
-        f"💳 Method:   *UPI*\n"
-        f"📝 UTR:      `{utr}`\n"
+        f"*🆔 Order ID:*  `{order_id}`\n"
+        f"*💰 Amount:*   *${amount:,.2f}*\n"
+        f"*🏦 Details:*  `{address}`\n"
+        f"*💳 Method:*   *UPI*\n"
+        f"*📝 UTR:*      `{utr}`\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"👤 User:      {username_str}\n"
-        f"🪪 User ID:   `{user.id}`\n"
+        f"*👤 User:*      {username_str}\n"
+        f"*🪪 User ID:*   `{user.id}`\n"
         f"━━━━━━━━━━━━━━━━━━━━"
     )
+
 
     # Save to DB so channel approve/reject can see it
     await Database.update_order_payment(order_id, "UPI", utr)

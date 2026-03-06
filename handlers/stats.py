@@ -36,10 +36,11 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = (
         f"📊 *Bot Statistics*\n\n"
-        f"👥 Total Users:          *{total_users:,}*\n"
-        f"💵 Total Volume:         *${total_usd:,.2f}*\n"
-        f"✅ Successful Payments:  *{successful:,}*"
+        f"*👥 Total Users:*          *{total_users:,}*\n"
+        f"*💵 Total Volume:*         *${total_usd:,.2f}*\n"
+        f"*✅ Successful Payments:*  *{successful:,}*"
     )
+
 
     try:
         await _delete(query.message)

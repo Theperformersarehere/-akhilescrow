@@ -39,13 +39,14 @@ async def referral_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = (
         f"🎁 *Referral Program*\n\n"
-        f"📣 Share your link — only *new* users count!\n\n"
-        f"🔗 *Your Referral Link:*\n"
+        f"*📣 Share your link — only new users count!*\n\n"
+        f"*🔗 Your Referral Link:*\n"
         f"`{personal_ref_link}`\n\n"
-        f"👥 *People You've Referred:* *{referral_count}*\n"
+        f"*👥 People You've Referred:* *{referral_count}*\n"
     )
     if referral_channel:
-        text += f"\n📢 *Updates Channel:* {referral_channel}\n"
+        text += f"\n*📢 Updates Channel:* {referral_channel}\n"
+
 
     # Build keyboard
     rows = [
