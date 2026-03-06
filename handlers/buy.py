@@ -42,10 +42,10 @@ async def buy_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _delete(query.message)
 
     buy_photo = await Database.get_setting("buy_photo", "")
-    text = (
+    text = await Database.get_setting("buy_text", (
         "💰 *Buy Crypto*\n\n"
         "Enter amount in $"
-    )
+    ))
 
     if buy_photo:
         await context.bot.send_photo(

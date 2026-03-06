@@ -1,48 +1,49 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-def main_menu_keyboard() -> InlineKeyboardMarkup:
+def main_menu_keyboard(support_username: str = "@owner") -> InlineKeyboardMarkup:
+    support_url = f"https://t.me/{support_username.replace('@', '')}"
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("💰 Buy Crypto", callback_data="buy")],
+        [InlineKeyboardButton("💰 𝗕𝗨𝗬 𝗖𝗥𝗬𝗣𝗧𝗢", callback_data="buy")],
         [
-            InlineKeyboardButton("📊 Stats",   callback_data="stats"),
-            InlineKeyboardButton("👤 Profile", callback_data="profile"),
+            InlineKeyboardButton("📊 𝗦𝗧𝗔𝗧𝗦",   callback_data="stats"),
+            InlineKeyboardButton("👤 𝗣𝗥𝗢𝗙𝗜𝗟𝗘", callback_data="profile"),
         ],
-        [InlineKeyboardButton("🆘 Support", callback_data="support")],
+        [InlineKeyboardButton("🆘 𝗦𝗨𝗣𝗣𝗢𝗥𝗧", url=support_url)],
     ])
 
 
 def network_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🟡 BEP20", callback_data="net_bep20"),
-            InlineKeyboardButton("🔷 ERC20",  callback_data="net_erc20"),
+            InlineKeyboardButton("🟡 𝗕𝗘𝗣𝟮𝟬", callback_data="net_bep20"),
+            InlineKeyboardButton("🔷 𝗘𝗥𝗖𝟮𝟬",  callback_data="net_erc20"),
         ],
         [
-            InlineKeyboardButton("💎 TON",   callback_data="net_ton"),
-            InlineKeyboardButton("🔴 TRC20", callback_data="net_trc20"),
+            InlineKeyboardButton("💎 𝗧𝗢𝗡",   callback_data="net_ton"),
+            InlineKeyboardButton("🔴 𝗧𝗥𝗖𝟮𝟬", callback_data="net_trc20"),
         ],
-        [InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")],
+        [InlineKeyboardButton("🏠 𝗠𝗔𝗜𝗡 𝗠𝗘𝗡𝗨", callback_data="main_menu")],
     ])
 
 
 def amount_entry_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📊 View Exchange Rates", callback_data="view_rates")],
-        [InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")],
+        [InlineKeyboardButton("📊 𝗩𝗜𝗘𝗪 𝗘𝗫𝗖𝗛𝗔𝗡𝗚𝗘 𝗥𝗔𝗧𝗘𝗦", callback_data="view_rates")],
+        [InlineKeyboardButton("🏠 𝗠𝗔𝗜𝗡 𝗠𝗘𝗡𝗨", callback_data="main_menu")],
     ])
 
 
 def receipt_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Submit UTR", callback_data="submit_utr")],
-        [InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")],
+        [InlineKeyboardButton("✅ 𝗦𝗨𝗕𝗠𝗜𝗧 𝗨𝗧𝗥", callback_data="submit_utr")],
+        [InlineKeyboardButton("🏠 𝗠𝗔𝗜𝗡 𝗠𝗘𝗡𝗨", callback_data="main_menu")],
     ])
 
 
 def back_to_main() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")],
+        [InlineKeyboardButton("🏠 𝗠𝗔𝗜𝗡 𝗠𝗘𝗡𝗨", callback_data="main_menu")],
     ])
 
 
@@ -51,8 +52,12 @@ def back_to_main() -> InlineKeyboardMarkup:
 def admin_home_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🖼 Main Menu Photo",  callback_data="adm_main_photo"),
-            InlineKeyboardButton("💳 Buy Photo",        callback_data="adm_pay_photo"),
+            InlineKeyboardButton("🖼 Main Photo",  callback_data="adm_main_photo"),
+            InlineKeyboardButton("📝 Main Text",   callback_data="adm_main_text"),
+        ],
+        [
+            InlineKeyboardButton("💳 Buy Photo",   callback_data="adm_pay_photo"),
+            InlineKeyboardButton("📝 Buy Text",    callback_data="adm_pay_text"),
         ],
         [
             InlineKeyboardButton("📊 Stats Photo",      callback_data="adm_stats_photo"),

@@ -31,12 +31,9 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📊 *Bot Statistics*\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"👥 Total Users:          *{total_users:,}*\n"
-        f"📦 Total Orders:         *{total_orders:,}*\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"💵 Total Volume:         *${total_usd:,.2f}*\n"
         f"✅ Successful Payments:  *{successful:,}*\n"
-        f"⏳ Pending Payments:     *{pending:,}*\n"
-        f"❌ Rejected Payments:    *{rejected:,}*\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"💎 Powered by *Crypto Buy Bot*"
     )

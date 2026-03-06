@@ -18,13 +18,14 @@ async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, del
     )
 
     photo = await Database.get_setting("main_menu_photo", "")
-    caption = (
+    caption = await Database.get_setting("main_menu_text", (
         "🏠 *Welcome to Crypto Buy Bot*\n\n"
         "💎 Buy crypto instantly with INR\n"
         "🔒 Secure & Fast transactions\n\n"
         "Choose an option below 👇"
-    )
-    keyboard = main_menu_keyboard()
+    ))
+    support_username = await Database.get_setting("support_username", "@owner")
+    keyboard = main_menu_keyboard(support_username)
 
     if delete_prev and update.callback_query:
         try:

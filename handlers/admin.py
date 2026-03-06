@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
     ADMIN_AWAIT_PAY_PHOTO,
     ADMIN_AWAIT_STATS_PHOTO,
     ADMIN_AWAIT_PROFILE_PHOTO,
+    ADMIN_AWAIT_MAIN_TEXT,
+    ADMIN_AWAIT_PAY_TEXT,
     ADMIN_AWAIT_SUPPORT,
     ADMIN_AWAIT_CONV_MSG,
     ADMIN_CHOOSE_QR,
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
     ADMIN_AWAIT_RATES,
     ADMIN_VIEW_ORDERS,
     ADMIN_AWAIT_CHANNEL,
-) = range(16)
+) = range(18)
 
 
 # ── Guard ──────────────────────────────────────────────────────────────────────
@@ -96,6 +98,30 @@ async def receive_main_photo(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return ADMIN_HOME
 
 
+async def prompt_main_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await _delete(query.message)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="📝 *Send the new Main Menu text:*",
+        parse_mode="Markdown",
+        reply_markup=admin_cancel_keyboard(),
+    )
+    return ADMIN_AWAIT_MAIN_TEXT
+
+
+async def receive_main_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await Database.set_setting("main_menu_text", update.message.text.strip())
+    await _delete(update.message)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="✅ Main menu text updated!",
+        reply_markup=admin_home_keyboard(),
+    )
+    return ADMIN_HOME
+
+
 async def prompt_pay_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -116,6 +142,30 @@ async def receive_pay_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="✅ Buy photo updated!",
+        reply_markup=admin_home_keyboard(),
+    )
+    return ADMIN_HOME
+
+
+async def prompt_pay_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await _delete(query.message)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="📝 *Send the new Buy Menu text:*",
+        parse_mode="Markdown",
+        reply_markup=admin_cancel_keyboard(),
+    )
+    return ADMIN_AWAIT_PAY_TEXT
+
+
+async def receive_pay_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await Database.set_setting("buy_text", update.message.text.strip())
+    await _delete(update.message)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="✅ Buy menu text updated!",
         reply_markup=admin_home_keyboard(),
     )
     return ADMIN_HOME
@@ -609,7 +659,9 @@ def get_admin_conversation() -> ConversationHandler:
         states={
             ADMIN_HOME: [
                 CallbackQueryHandler(prompt_main_photo,    pattern="^adm_main_photo$"),
+                CallbackQueryHandler(prompt_main_text,     pattern="^adm_main_text$"),
                 CallbackQueryHandler(prompt_pay_photo,     pattern="^adm_pay_photo$"),
+                CallbackQueryHandler(prompt_pay_text,      pattern="^adm_pay_text$"),
                 CallbackQueryHandler(prompt_stats_photo,   pattern="^adm_stats_photo$"),
                 CallbackQueryHandler(prompt_profile_photo, pattern="^adm_profile_photo$"),
                 CallbackQueryHandler(prompt_support,       pattern="^adm_support$"),
@@ -623,7 +675,9 @@ def get_admin_conversation() -> ConversationHandler:
                 CallbackQueryHandler(prompt_reject,        pattern="^adm_reject$"),
             ],
             ADMIN_AWAIT_MAIN_PHOTO:  [MessageHandler(filters.PHOTO, receive_main_photo), back_btn],
+            ADMIN_AWAIT_MAIN_TEXT:   [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_main_text), back_btn],
             ADMIN_AWAIT_PAY_PHOTO:   [MessageHandler(filters.PHOTO, receive_pay_photo),  back_btn],
+            ADMIN_AWAIT_PAY_TEXT:    [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_pay_text), back_btn],
             ADMIN_AWAIT_STATS_PHOTO: [MessageHandler(filters.PHOTO, receive_stats_photo),back_btn],
             ADMIN_AWAIT_PROFILE_PHOTO:[MessageHandler(filters.PHOTO, receive_profile_photo),back_btn],
             ADMIN_AWAIT_SUPPORT:     [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_support), back_btn],

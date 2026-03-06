@@ -51,9 +51,7 @@ async def profile_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📅 Member Since:    *{joined}*\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"💰 Total Crypto Bought:  *${total_buys:,.2f}*\n"
-        f"📦 Total Orders:         *{data.get('total_orders') or 0}*\n"
         f"✅ Successful Payments:  *{data.get('successful_payments') or 0}*\n"
-        f"❌ Rejected Payments:    *{data.get('rejected_payments') or 0}*\n"
         f"━━━━━━━━━━━━━━━━━━━━"
     )
 
