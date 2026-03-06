@@ -2,6 +2,7 @@ import logging
 from telegram.ext import Application
 
 from config import BOT_TOKEN
+from database import INSTANCE_ID
 from handlers.start import get_handlers as start_handlers
 from handlers.buy import get_buy_conversation
 from handlers.profile import get_handlers as profile_handlers
@@ -43,5 +44,5 @@ def build_app() -> Application:
     for handler in support_handlers():
         app.add_handler(handler)
 
-    logger.info("All handlers registered.")
+    logger.info(f"[{INSTANCE_ID}] All handlers registered.")
     return app
