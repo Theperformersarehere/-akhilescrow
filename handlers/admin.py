@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
     ADMIN_AWAIT_RATES,
     ADMIN_VIEW_ORDERS,
     ADMIN_AWAIT_CHANNEL,
-) = range(17)
+) = range(16)
 
 
 # ── Guard ──────────────────────────────────────────────────────────────────────
