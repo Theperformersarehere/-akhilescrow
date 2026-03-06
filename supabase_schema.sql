@@ -42,10 +42,13 @@ CREATE TABLE IF NOT EXISTS bot_settings (
 -- Default settings
 INSERT INTO bot_settings (key, value) VALUES
     ('main_menu_photo',       ''),
+    ('main_menu_text',        '🏠 *Welcome to Crypto Buy Bot*\n\n💎 Buy crypto instantly with INR\n🔒 Secure & Fast transactions\n\nChoose an option below 👇'),
     ('buy_photo',             ''),
+    ('buy_text',              '💰 *Choose Crypto Network*\n\nPlease select the network you want to receive your crypto on:'),
     ('stats_photo',           ''),
     ('profile_photo',         ''),
     ('support_username',      '@support'),
+    ('proof_channel_id',      ''),
     ('conversion_rate_message',
      '🔹 *Exchange Rates*
 

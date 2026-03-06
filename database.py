@@ -7,6 +7,14 @@ logger = logging.getLogger(__name__)
 
 _client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# Diagnostic: Log masked credentials to verify environment config
+if not SUPABASE_URL or "your-project" in SUPABASE_URL:
+    logger.error("🛑 CRITICAL: SUPABASE_URL is not set or using default placeholder!")
+else:
+    masked_url = f"{SUPABASE_URL[:15]}..."
+    masked_key = f"{SUPABASE_KEY[:5]}...{SUPABASE_KEY[-5:]}" if SUPABASE_KEY else "MISSING"
+    logger.info(f"✅ Supabase initialized with URL: {masked_url} and Key: {masked_key}")
+
 
 async def _run(fn):
     """Run a blocking Supabase call in a thread so we don't block the event loop."""

@@ -1061,11 +1061,48 @@ async def admin_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def check_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not _is_admin(user.id):
+        return
+
+    from config import SUPABASE_URL, SUPABASE_KEY
+    url_set = bool(SUPABASE_URL and "your-project" not in SUPABASE_URL)
+    key_set = bool(SUPABASE_KEY and "your_supabase" not in SUPABASE_KEY)
+    
+    masked_url = f"{SUPABASE_URL[:15]}..." if SUPABASE_URL else "NOT SET"
+    masked_key = f"{SUPABASE_KEY[:5]}...{SUPABASE_KEY[-5:]}" if SUPABASE_KEY else "NOT SET"
+
+    db_status = "❌ NOT CONNECTED"
+    order_count = 0
+    try:
+        res = await Database.get_all_orders(limit=1)
+        db_status = "✅ CONNECTED"
+        cnt_res = await Database.get_stats()
+        order_count = cnt_res.get("total_orders", 0)
+    except Exception as e:
+        db_status = f"❌ ERROR: {e}"
+
+    await update.message.reply_text(
+        f"🔍 **Database Diagnostic**\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🌐 URL set: {'✅' if url_set else '❌'}\n"
+        f"🔑 Key set: {'✅' if key_set else '❌'}\n"
+        f"🔗 Status: **{db_status}**\n"
+        f"📦 Total Orders in DB: `{order_count}`\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"📝 Masked URL: `{masked_url}`\n"
+        f"📝 Masked Key: `{masked_key}`\n\n"
+        f"⚠️ If URL/Key look like 'your-project...', verify your environment variables!",
+        parse_mode="Markdown"
+    )
+
 # ── ConversationHandler factory ───────────────────────────────────────────────
 def get_admin_handlers():
     return [
         CommandHandler("reply", admin_reply),
         CommandHandler("broadcast", admin_broadcast),
+        CommandHandler("checkdb", check_db),
         MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/broadcast"), admin_broadcast),
     ]
 
