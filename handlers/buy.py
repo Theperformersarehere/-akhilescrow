@@ -219,7 +219,7 @@ async def enter_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "order_id":               order_id,
         "user_id":                update.effective_user.id,
         "network":                network.upper(),
-        "user_receiving_address": user_address,
+        "wallet_address":           user_address,
         "amount_usd":             amount_usd,
         "amount_inr":             amount_inr,
         "rate_used":              rate,

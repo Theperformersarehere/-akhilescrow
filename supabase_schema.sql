@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS orders (
     order_id        TEXT UNIQUE NOT NULL,
     user_id         BIGINT REFERENCES users(user_id),
     network         TEXT NOT NULL,
-    user_receiving_address TEXT NOT NULL,
+    wallet_address   TEXT NOT NULL,
     amount_usd      NUMERIC NOT NULL,
     amount_inr      NUMERIC NOT NULL,
     rate_used       NUMERIC NOT NULL,
