@@ -112,6 +112,12 @@ class Database:
                 res_f = _client.table("orders").select("*").eq("order_id", order_id).execute()
                 if not res_f or not hasattr(res_f, 'data') or not res_f.data:
                     logger.warning(f"approve_order: Order {order_id} not found.")
+                    # DIAGNOSTIC: List last 5 orders
+                    try:
+                        recent = _client.table("orders").select("order_id").order("created_at", desc=True).limit(5).execute()
+                        logger.info(f"Recent orders in DB: {[o.get('order_id') for o in recent.data] if recent.data else 'None'}")
+                    except Exception as diag_err:
+                        logger.error(f"Diagnostic fetch failed: {diag_err}")
                     return None
                 
                 order = res_f.data[0]
@@ -157,6 +163,12 @@ class Database:
                 res_f = _client.table("orders").select("*").eq("order_id", order_id).execute()
                 if not res_f or not hasattr(res_f, 'data') or not res_f.data:
                     logger.warning(f"reject_order: Order {order_id} not found.")
+                    # DIAGNOSTIC: List last 5 orders
+                    try:
+                        recent = _client.table("orders").select("order_id").order("created_at", desc=True).limit(5).execute()
+                        logger.info(f"Recent orders in DB: {[o.get('order_id') for o in recent.data] if recent.data else 'None'}")
+                    except Exception as diag_err:
+                        logger.error(f"Diagnostic fetch failed: {diag_err}")
                     return None
                 
                 order = res_f.data[0]
