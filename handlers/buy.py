@@ -139,18 +139,29 @@ async def enter_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["amount_inr"] = amount_inr
     context.user_data["rate_used"]  = rate
 
-    # Now ask for network
-    msg = await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=(
-            f"🔗 *Choose Blockchain Network*\n\n"
-            f"💰 *Buying*: *${amount_usd:,.2f}*\n"
-            f"🇮🇳 *You Pay*: *₹{amount_inr:,.0f}* (@ ₹{rate})\n\n"
-            f"*Select the network you want to receive crypto on:*"
-        ),
-        parse_mode="Markdown",
-        reply_markup=network_keyboard(),
+    # Now ask for USDT network
+    network_photo = await Database.get_setting("network_photo", "")
+    network_text = (
+        f"🔗 *Choose USDT Address*\n\n"
+        f"💰 *Buying*: *${amount_usd:,.2f}*\n"
+        f"🇮🇳 *You Pay*: *₹{amount_inr:,.0f}* (@ ₹{rate})\n\n"
+        f"*Select the network you want to receive USDT on:*"
     )
+    if network_photo:
+        msg = await context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=network_photo,
+            caption=network_text,
+            parse_mode="Markdown",
+            reply_markup=network_keyboard(),
+        )
+    else:
+        msg = await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=network_text,
+            parse_mode="Markdown",
+            reply_markup=network_keyboard(),
+        )
     context.user_data["last_bot_message_id"] = msg.message_id
     return CHOOSE_NETWORK
 
@@ -166,17 +177,28 @@ async def choose_network(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     net_label = NETWORK_LABELS.get(network, network.upper())
     
-    # Prompt for Receiving Address
-    msg = await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=(
-            f"🏦 *Enter Receiving Details*\n\n"
-            f"You selected: *{net_label}*\n\n"
-            f"Please enter your *Crypto Wallet Address* where you want to receive the crypto:"
-        ),
-        parse_mode="Markdown",
-        reply_markup=back_to_main(),
+    # Prompt for Receiving Address — using network photo if set
+    network_photo = await Database.get_setting("network_photo", "")
+    address_text = (
+        f"🏦 *Enter USDT Receiving Address*\n\n"
+        f"You selected: *{net_label}*\n\n"
+        f"Please enter your *USDT Wallet Address* where you want to receive:"
     )
+    if network_photo:
+        msg = await context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=network_photo,
+            caption=address_text,
+            parse_mode="Markdown",
+            reply_markup=back_to_main(),
+        )
+    else:
+        msg = await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=address_text,
+            parse_mode="Markdown",
+            reply_markup=back_to_main(),
+        )
     context.user_data["last_bot_message_id"] = msg.message_id
     return ENTER_ADDRESS
 
@@ -237,16 +259,27 @@ async def enter_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["current_order_id"] = order_id
 
-    # Ask for Payment Method instead of directly showing receipt
-    msg = await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=(
-            f"🏦 *Choose Payment Method*\n\n"
-            f"*Please select how you'd like to pay* ₹{amount_inr:,.0f}:"
-        ),
-        parse_mode="Markdown",
-        reply_markup=payment_method_keyboard(),
+    # Ask for Payment Method with optional photo
+    pay_method_photo = await Database.get_setting("pay_method_photo", "")
+    pay_method_text = (
+        f"🏦 *Choose Payment Method*\n\n"
+        f"*Please select how you'd like to pay* ₹{amount_inr:,.0f}:"
     )
+    if pay_method_photo:
+        msg = await context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=pay_method_photo,
+            caption=pay_method_text,
+            parse_mode="Markdown",
+            reply_markup=payment_method_keyboard(),
+        )
+    else:
+        msg = await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=pay_method_text,
+            parse_mode="Markdown",
+            reply_markup=payment_method_keyboard(),
+        )
     context.user_data["last_bot_message_id"] = msg.message_id
     return CHOOSE_PAYMENT_METHOD
 
@@ -295,7 +328,7 @@ async def choose_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
         f"🇮🇳 Pay:       *₹{amount_inr:,.0f}*  (@ ₹{rate}/$)\n"
         f"🏦 To:        `{user_address}`\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"⚡ Tap *I HAVE PAID* after making the payment."
+        f"⚡ Tap *Confirm Payment* after making the payment."
     )
 
     if pay_photo:

@@ -47,7 +47,7 @@ def payment_method_keyboard() -> InlineKeyboardMarkup:
 
 def payment_proof_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ I Have Paid", callback_data="submit_proof")],
+        [InlineKeyboardButton("✅ Confirm Payment", callback_data="submit_proof")],
         [InlineKeyboardButton("⬅️ Back", callback_data="main_menu")],
     ])
 
@@ -73,6 +73,10 @@ def admin_home_keyboard() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton("📊 Stats Photo",      callback_data="adm_stats_photo"),
             InlineKeyboardButton("👤 Profile Photo",    callback_data="adm_profile_photo"),
+        ],
+        [
+            InlineKeyboardButton("🌐 Network Photo",       callback_data="adm_network_photo"),
+            InlineKeyboardButton("💳 Pay Method Photo",   callback_data="adm_pay_method_photo"),
         ],
         [
             InlineKeyboardButton("📞 Support Username", callback_data="adm_support"),

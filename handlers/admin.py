@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
     ADMIN_AWAIT_PAY_PHOTO,
     ADMIN_AWAIT_STATS_PHOTO,
     ADMIN_AWAIT_PROFILE_PHOTO,
+    ADMIN_AWAIT_NETWORK_PHOTO,
+    ADMIN_AWAIT_PAY_METHOD_PHOTO,
     ADMIN_AWAIT_MAIN_TEXT,
     ADMIN_AWAIT_PAY_TEXT,
     ADMIN_AWAIT_SUPPORT,
@@ -33,7 +35,7 @@ logger = logging.getLogger(__name__)
     ADMIN_AWAIT_STATS_USER_ID,
     ADMIN_AWAIT_STATS_USER_LIST,
     ADMIN_AWAIT_STATS_USER_TRANS,
-) = range(20)
+) = range(22)
 
 
 # ── Guard ──────────────────────────────────────────────────────────────────────
@@ -1097,6 +1099,72 @@ async def check_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
+async def prompt_network_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await _delete(query.message)
+    msg = await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="🌐 *Send the photo to show when user is choosing USDT address:*",
+        parse_mode="Markdown",
+        reply_markup=admin_cancel_keyboard(),
+    )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
+    return ADMIN_AWAIT_NETWORK_PHOTO
+
+
+async def receive_network_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    file_id = update.message.photo[-1].file_id
+    await Database.set_setting("network_photo", file_id)
+    await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="✅ Network / Address photo updated!",
+        reply_markup=admin_home_keyboard(),
+    )
+    return ADMIN_HOME
+
+
+async def prompt_pay_method_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await _delete(query.message)
+    msg = await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="💳 *Send the photo to show when user is choosing a payment method:*",
+        parse_mode="Markdown",
+        reply_markup=admin_cancel_keyboard(),
+    )
+    context.user_data["admin_prompt_msg_id"] = msg.message_id
+    return ADMIN_AWAIT_PAY_METHOD_PHOTO
+
+
+async def receive_pay_method_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    file_id = update.message.photo[-1].file_id
+    await Database.set_setting("pay_method_photo", file_id)
+    await _delete(update.message)
+    last_bot_msg_id = context.user_data.get("admin_prompt_msg_id")
+    if last_bot_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=last_bot_msg_id)
+        except Exception:
+            pass
+        context.user_data.pop("admin_prompt_msg_id", None)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="✅ Payment Method photo updated!",
+        reply_markup=admin_home_keyboard(),
+    )
+    return ADMIN_HOME
+
+
 # ── ConversationHandler factory ───────────────────────────────────────────────
 def get_admin_handlers():
     return [
@@ -1114,29 +1182,33 @@ def get_admin_conversation() -> ConversationHandler:
         entry_points=[CommandHandler("admin", admin_home)],
         states={
             ADMIN_HOME: [
-                CallbackQueryHandler(prompt_main_photo,    pattern="^adm_main_photo$"),
-                CallbackQueryHandler(prompt_main_text,     pattern="^adm_main_text$"),
-                CallbackQueryHandler(prompt_pay_photo,     pattern="^adm_pay_photo$"),
-                CallbackQueryHandler(prompt_pay_text,      pattern="^adm_pay_text$"),
-                CallbackQueryHandler(prompt_stats_photo,   pattern="^adm_stats_photo$"),
-                CallbackQueryHandler(prompt_profile_photo, pattern="^adm_profile_photo$"),
-                CallbackQueryHandler(prompt_support,       pattern="^adm_support$"),
-                CallbackQueryHandler(prompt_conv_msg,      pattern="^adm_conv_msg$"),
-                CallbackQueryHandler(prompt_pay_info,      pattern="^adm_(upi|imps)$"),
-                CallbackQueryHandler(prompt_rates,         pattern="^adm_rates$"),
-                CallbackQueryHandler(prompt_channel,       pattern="^adm_channel$"),
-                CallbackQueryHandler(view_all_orders,      pattern="^adm_orders$"),
-                CallbackQueryHandler(view_pending_orders,  pattern="^adm_pending$"),
-                CallbackQueryHandler(prompt_approve,       pattern="^adm_approve$"),
-                CallbackQueryHandler(prompt_reject,        pattern="^adm_reject$"),
-                CallbackQueryHandler(prompt_user_stats,    pattern="^adm_user_stats$"),
+                CallbackQueryHandler(prompt_main_photo,        pattern="^adm_main_photo$"),
+                CallbackQueryHandler(prompt_main_text,         pattern="^adm_main_text$"),
+                CallbackQueryHandler(prompt_pay_photo,         pattern="^adm_pay_photo$"),
+                CallbackQueryHandler(prompt_pay_text,          pattern="^adm_pay_text$"),
+                CallbackQueryHandler(prompt_stats_photo,       pattern="^adm_stats_photo$"),
+                CallbackQueryHandler(prompt_profile_photo,     pattern="^adm_profile_photo$"),
+                CallbackQueryHandler(prompt_network_photo,     pattern="^adm_network_photo$"),
+                CallbackQueryHandler(prompt_pay_method_photo,  pattern="^adm_pay_method_photo$"),
+                CallbackQueryHandler(prompt_support,           pattern="^adm_support$"),
+                CallbackQueryHandler(prompt_conv_msg,          pattern="^adm_conv_msg$"),
+                CallbackQueryHandler(prompt_pay_info,          pattern="^adm_(upi|imps)$"),
+                CallbackQueryHandler(prompt_rates,             pattern="^adm_rates$"),
+                CallbackQueryHandler(prompt_channel,           pattern="^adm_channel$"),
+                CallbackQueryHandler(view_all_orders,          pattern="^adm_orders$"),
+                CallbackQueryHandler(view_pending_orders,      pattern="^adm_pending$"),
+                CallbackQueryHandler(prompt_approve,           pattern="^adm_approve$"),
+                CallbackQueryHandler(prompt_reject,            pattern="^adm_reject$"),
+                CallbackQueryHandler(prompt_user_stats,        pattern="^adm_user_stats$"),
             ],
             ADMIN_AWAIT_MAIN_PHOTO:  [MessageHandler(filters.PHOTO, receive_main_photo), back_btn],
             ADMIN_AWAIT_MAIN_TEXT:   [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_main_text), back_btn],
             ADMIN_AWAIT_PAY_PHOTO:   [MessageHandler(filters.PHOTO, receive_pay_photo),  back_btn],
             ADMIN_AWAIT_PAY_TEXT:    [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_pay_text), back_btn],
-            ADMIN_AWAIT_STATS_PHOTO: [MessageHandler(filters.PHOTO, receive_stats_photo),back_btn],
-            ADMIN_AWAIT_PROFILE_PHOTO:[MessageHandler(filters.PHOTO, receive_profile_photo),back_btn],
+            ADMIN_AWAIT_STATS_PHOTO:    [MessageHandler(filters.PHOTO, receive_stats_photo),   back_btn],
+            ADMIN_AWAIT_PROFILE_PHOTO:  [MessageHandler(filters.PHOTO, receive_profile_photo),  back_btn],
+            ADMIN_AWAIT_NETWORK_PHOTO:  [MessageHandler(filters.PHOTO, receive_network_photo),  back_btn],
+            ADMIN_AWAIT_PAY_METHOD_PHOTO: [MessageHandler(filters.PHOTO, receive_pay_method_photo), back_btn],
             ADMIN_AWAIT_SUPPORT:     [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_support), back_btn],
             ADMIN_AWAIT_CONV_MSG:    [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_conv_msg), back_btn],
             ADMIN_AWAIT_PAY_INFO_ACTION: [

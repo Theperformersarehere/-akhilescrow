@@ -35,14 +35,10 @@ async def stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     rejected     = stats.get("rejected",     0)
 
     text = (
-        f"📊 *Bot Statistics*\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"📊 *Bot Statistics*\n\n"
         f"👥 Total Users:          *{total_users:,}*\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
         f"💵 Total Volume:         *${total_usd:,.2f}*\n"
-        f"✅ Successful Payments:  *{successful:,}*\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"💎 Powered by *Crypto Buy Bot*"
+        f"✅ Successful Payments:  *{successful:,}*"
     )
 
     try:

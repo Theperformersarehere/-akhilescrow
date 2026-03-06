@@ -43,16 +43,13 @@ async def profile_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_buys = float(data.get("total_buys") or 0)
 
     text = (
-        f"👤 *Your Profile*\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 *Your Profile*\n\n"
         f"🆔 User ID:            `{data.get('user_id', user.id)}`\n"
         f"👤 Username:          {username}\n"
         f"📛 Name:               {full_name}\n"
-        f"📅 Member Since:    *{joined}*\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"📅 Member Since:    *{joined}*\n\n"
         f"💰 Total Crypto Bought:  *${total_buys:,.2f}*\n"
-        f"✅ Successful Payments:  *{data.get('successful_payments') or 0}*\n"
-        f"━━━━━━━━━━━━━━━━━━━━"
+        f"✅ Successful Payments:  *{data.get('successful_payments') or 0}*"
     )
 
     try:
