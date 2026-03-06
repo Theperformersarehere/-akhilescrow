@@ -108,31 +108,47 @@ class Database:
     async def approve_order(order_id: str) -> dict | None:
         def _query():
             try:
-                res = _client.table("orders").update(
-                    {"status": "approved"}
-                ).eq("order_id", order_id).execute()
+                # 1. Update order status
+                # Try to get data back immediately with select()
+                res = _client.table("orders").update({"status": "approved"}).eq("order_id", order_id).select("*").execute()
                 
                 order = None
-                if res.data:
+                if res.data and len(res.data) > 0:
                     order = res.data[0]
                 else:
-                    # Fallback: fetch manually
-                    res_fetch = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
-                    order = res_fetch.data
+                    # Fallback fetch
+                    res_f = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
+                    order = res_f.data
                 
                 if not order:
+                    logger.warning(f"approve_order: Order {order_id} not found after update attempt.")
                     return None
-                u = _client.table("users").select(
-                    "successful_payments,total_buys"
-                ).eq("user_id", order["user_id"]).maybe_single().execute()
-                if u.data:
-                    _client.table("users").update({
-                        "successful_payments": (u.data.get("successful_payments") or 0) + 1,
-                        "total_buys": float(u.data.get("total_buys") or 0) + float(order["amount_usd"]),
-                    }).eq("user_id", order["user_id"]).execute()
+                
+                # 2. Update user stats
+                uid = order.get("user_id")
+                if uid:
+                    u_res = _client.table("users").select("*").eq("user_id", uid).maybe_single().execute()
+                    user_data = u_res.data
+                    if user_data:
+                        succ = (user_data.get("successful_payments") or 0) + 1
+                        prev_buys = 0
+                        try:
+                            prev_buys = float(user_data.get("total_buys") or 0)
+                        except (ValueError, TypeError): pass
+                        
+                        curr_amt = 0
+                        try:
+                            curr_amt = float(order.get("amount_usd") or 0)
+                        except (ValueError, TypeError): pass
+                        
+                        _client.table("users").update({
+                            "successful_payments": succ,
+                            "total_buys": prev_buys + curr_amt,
+                        }).eq("user_id", uid).execute()
+                
                 return order
             except Exception as e:
-                logger.error(f"approve_order error: {e}")
+                logger.error(f"approve_order error for {order_id}: {e}", exc_info=True)
                 return None
         return await _run(_query)
 
@@ -140,29 +156,31 @@ class Database:
     async def reject_order(order_id: str) -> dict | None:
         def _query():
             try:
-                res = _client.table("orders").update(
-                    {"status": "rejected"}
-                ).eq("order_id", order_id).execute()
-
+                # 1. Update order status
+                res = _client.table("orders").update({"status": "rejected"}).eq("order_id", order_id).select("*").execute()
+                
                 order = None
-                if res.data:
+                if res.data and len(res.data) > 0:
                     order = res.data[0]
                 else:
-                    res_fetch = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
-                    order = res_fetch.data
+                    res_f = _client.table("orders").select("*").eq("order_id", order_id).maybe_single().execute()
+                    order = res_f.data
                 
                 if not order:
+                    logger.warning(f"reject_order: Order {order_id} not found after update attempt.")
                     return None
-                u = _client.table("users").select(
-                    "rejected_payments"
-                ).eq("user_id", order["user_id"]).maybe_single().execute()
-                if u.data:
-                    _client.table("users").update({
-                        "rejected_payments": (u.data.get("rejected_payments") or 0) + 1,
-                    }).eq("user_id", order["user_id"]).execute()
+                
+                # 2. Update user stats (rejected count)
+                uid = order.get("user_id")
+                if uid:
+                    u_res = _client.table("users").select("rejected_payments").eq("user_id", uid).maybe_single().execute()
+                    if u_res.data:
+                        rejs = (u_res.data.get("rejected_payments") or 0) + 1
+                        _client.table("users").update({"rejected_payments": rejs}).eq("user_id", uid).execute()
+                
                 return order
             except Exception as e:
-                logger.error(f"reject_order error: {e}")
+                logger.error(f"reject_order error for {order_id}: {e}", exc_info=True)
                 return None
         return await _run(_query)
 
