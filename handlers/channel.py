@@ -32,7 +32,7 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Prepare fields
         o_id   = html.escape(str(order_id))
         method = html.escape(str(order.get('payment_method', '—')))
-        addr   = html.escape(str(order.get('user_receiving_address', '—')))
+        addr   = html.escape(str(order.get('wallet_address', '—')))
         uid    = str(order.get('user_id', 'Unknown'))
         amt    = 0
         try: amt = float(order.get('amount_usd', 0))
@@ -108,7 +108,7 @@ async def channel_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Prepare fields
         o_id   = html.escape(str(order_id))
         method = html.escape(str(order.get('payment_method', '—')))
-        addr   = html.escape(str(order.get('user_receiving_address', '—')))
+        addr   = html.escape(str(order.get('wallet_address', '—')))
         uid    = str(order.get('user_id', 'Unknown'))
         amt    = 0
         try: amt = float(order.get('amount_usd', 0))
