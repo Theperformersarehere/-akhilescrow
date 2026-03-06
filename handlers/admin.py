@@ -6,7 +6,7 @@ from telegram.ext import (
 )
 
 from database import Database
-from utils.keyboards import admin_home_keyboard, network_choice_keyboard, admin_cancel_keyboard
+from utils.keyboards import admin_home_keyboard, admin_cancel_keyboard
 from config import ADMIN_IDS
 
 logger = logging.getLogger(__name__)
