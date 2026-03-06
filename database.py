@@ -86,7 +86,7 @@ class Database:
             try:
                 res = _client.table("orders").update(
                     {"status": "approved"}
-                ).eq("order_id", order_id).select("*").execute()
+                ).eq("order_id", order_id).execute()
                 if not res.data:
                     return None
                 order = res.data[0]
@@ -110,7 +110,7 @@ class Database:
             try:
                 res = _client.table("orders").update(
                     {"status": "rejected"}
-                ).eq("order_id", order_id).select("*").execute()
+                ).eq("order_id", order_id).execute()
                 if not res.data:
                     return None
                 order = res.data[0]
