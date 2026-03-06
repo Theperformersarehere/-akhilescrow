@@ -8,6 +8,21 @@ from database import Database
 logger = logging.getLogger(__name__)
 
 
+async def _edit_message(query, caption: str):
+    """Try edit_message_caption (photo), fall back to edit_message_text."""
+    try:
+        await query.edit_message_caption(caption=caption, parse_mode="HTML")
+        return True
+    except Exception as cap_err:
+        logger.warning(f"edit_message_caption failed ({cap_err}), trying edit_message_text...")
+    try:
+        await query.edit_message_text(text=caption, parse_mode="HTML")
+        return True
+    except Exception as txt_err:
+        logger.error(f"edit_message_text also failed: {txt_err}")
+        return False
+
+
 async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer("Processing approval...", show_alert=False)
@@ -29,42 +44,40 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # Prepare fields
-        o_id   = html.escape(str(order_id))
-        method = html.escape(str(order.get('payment_method', '—')))
-        addr   = html.escape(str(order.get('wallet_address', '—')))
-        utr    = html.escape(str(order.get('screenshot_id', '—')))
-        uid    = str(order.get('user_id', 'Unknown'))
-        
-        amt = 0
+        o_id    = html.escape(str(order_id))
+        method  = html.escape(str(order.get('payment_method', '—')))
+        addr    = html.escape(str(order.get('wallet_address', '—')))
+        utr     = html.escape(str(order.get('screenshot_id', '—')))
+        uid     = str(order.get('user_id', 'Unknown'))
+        amt     = 0
         amt_inr = 0
-        try: 
-            amt = float(order.get('amount_usd', 0))
-            amt_inr = float(order.get('amount_inr', 0))
-        except: pass
-
-        logger.info(f"Order {order_id} fetched successfully. Attempting to edit channel message...")
-
-        # Edit channel message to show approved status
         try:
-            await query.edit_message_caption(
-                caption=(
-                    f"✅ <b>APPROVED</b>\n"
-                    f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🆔 Order ID:  <code>{o_id}</code>\n"
-                    f"💰 Amount:   <b>${amt:,.2f}</b>\n"
-                    f"🇮🇳 Paid:     <b>₹{amt_inr:,.0f}</b>\n"
-                    f"🏦 Details:  <code>{addr}</code>\n"
-                    f"💳 Method:   <b>{method}</b>\n"
-                    f"✍️ UTR:      <b>{utr}</b>\n"
-                    f"👤 User ID:  <code>{uid}</code>\n"
-                    f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"✅ Approved and user notified."
-                ),
-                parse_mode="HTML",
-            )
+            amt     = float(order.get('amount_usd', 0))
+            amt_inr = float(order.get('amount_inr', 0))
+        except Exception:
+            pass
+
+        logger.info(f"Order {order_id} fetched. Editing channel message...")
+
+        receipt = (
+            f"✅ <b>APPROVED</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"🆔 Order ID:  <code>{o_id}</code>\n"
+            f"💰 Amount:   <b>${amt:,.2f}</b>\n"
+            f"🇮🇳 Paid:     <b>₹{amt_inr:,.0f}</b>\n"
+            f"🏦 Details:  <code>{addr}</code>\n"
+            f"💳 Method:   <b>{method}</b>\n"
+            f"✍️ UTR:      <b>{utr}</b>\n"
+            f"👤 User ID:  <code>{uid}</code>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"✅ Approved and user notified."
+        )
+
+        edited = await _edit_message(query, receipt)
+        if edited:
             logger.info(f"Channel message for {order_id} edited successfully.")
-        except Exception as edit_err:
-            logger.error(f"Failed to edit channel message on approve: {edit_err}")
+        else:
+            logger.error(f"Could not edit channel message for {order_id}.")
 
         # Notify user
         try:
@@ -83,10 +96,10 @@ async def channel_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 logger.info(f"User {target_id} notified for order {order_id}.")
             else:
-                logger.error(f"No user_id found for order {order_id}, cannot notify user.")
+                logger.error(f"No user_id found for order {order_id}.")
         except Exception as notify_err:
             logger.error(f"Failed to notify user on approve: {notify_err}")
-            
+
     except Exception as e:
         logger.error(f"CRITICAL error in channel_approve: {e}", exc_info=True)
         await query.answer(f"❌ System Error: {str(e)[:50]}", show_alert=True)
@@ -104,7 +117,7 @@ async def channel_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         order_id = data[len("ch_reject_"):]
         logger.info(f"--- CHANNEL REJECT START: {order_id} ---")
-        
+
         order = await Database.reject_order(order_id)
 
         if not order:
@@ -113,42 +126,40 @@ async def channel_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # Prepare fields
-        o_id   = html.escape(str(order_id))
-        method = html.escape(str(order.get('payment_method', '—')))
-        addr   = html.escape(str(order.get('wallet_address', '—')))
-        utr    = html.escape(str(order.get('screenshot_id', '—')))
-        uid    = str(order.get('user_id', 'Unknown'))
-        
-        amt = 0
+        o_id    = html.escape(str(order_id))
+        method  = html.escape(str(order.get('payment_method', '—')))
+        addr    = html.escape(str(order.get('wallet_address', '—')))
+        utr     = html.escape(str(order.get('screenshot_id', '—')))
+        uid     = str(order.get('user_id', 'Unknown'))
+        amt     = 0
         amt_inr = 0
-        try: 
-            amt = float(order.get('amount_usd', 0))
-            amt_inr = float(order.get('amount_inr', 0))
-        except: pass
-
-        logger.info(f"Order {order_id} fetched successfully. Attempting to edit channel message...")
-
-        # Edit channel message to show rejected status
         try:
-            await query.edit_message_caption(
-                caption=(
-                    f"❌ <b>REJECTED</b>\n"
-                    f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🆔 Order ID:  <code>{o_id}</code>\n"
-                    f"💰 Amount:   <b>${amt:,.2f}</b>\n"
-                    f"🇮🇳 Paid:     <b>₹{amt_inr:,.0f}</b>\n"
-                    f"🏦 Details:  <code>{addr}</code>\n"
-                    f"💳 Method:   <b>{method}</b>\n"
-                    f"✍️ UTR:      <b>{utr}</b>\n"
-                    f"👤 User ID:  <code>{uid}</code>\n"
-                    f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"❌ Rejected and user notified."
-                ),
-                parse_mode="HTML",
-            )
+            amt     = float(order.get('amount_usd', 0))
+            amt_inr = float(order.get('amount_inr', 0))
+        except Exception:
+            pass
+
+        logger.info(f"Order {order_id} fetched. Editing channel message...")
+
+        receipt = (
+            f"❌ <b>REJECTED</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"🆔 Order ID:  <code>{o_id}</code>\n"
+            f"💰 Amount:   <b>${amt:,.2f}</b>\n"
+            f"🇮🇳 Paid:     <b>₹{amt_inr:,.0f}</b>\n"
+            f"🏦 Details:  <code>{addr}</code>\n"
+            f"💳 Method:   <b>{method}</b>\n"
+            f"✍️ UTR:      <b>{utr}</b>\n"
+            f"👤 User ID:  <code>{uid}</code>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"❌ Rejected and user notified."
+        )
+
+        edited = await _edit_message(query, receipt)
+        if edited:
             logger.info(f"Channel message for {order_id} edited successfully.")
-        except Exception as edit_err:
-            logger.error(f"Failed to edit channel message on reject: {edit_err}")
+        else:
+            logger.error(f"Could not edit channel message for {order_id}.")
 
         # Notify user
         try:
@@ -164,12 +175,12 @@ async def channel_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ),
                     parse_mode="HTML",
                 )
-                logger.info(f"User {target_id} notified for rejection of order {order_id}.")
+                logger.info(f"User {target_id} notified for rejection of {order_id}.")
             else:
-                logger.error(f"No user_id found for order {order_id}, cannot notify user.")
+                logger.error(f"No user_id found for order {order_id}.")
         except Exception as notify_err:
             logger.error(f"Failed to notify user on reject: {notify_err}")
-            
+
     except Exception as e:
         logger.error(f"CRITICAL error in channel_reject: {e}", exc_info=True)
         await query.answer(f"❌ System Error: {str(e)[:50]}", show_alert=True)

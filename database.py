@@ -346,6 +346,7 @@ class Database:
                 u_res = _client.table("users").select("user_id", count="exact").execute()
                 o_res = _client.table("orders").select("amount_usd,status", count="exact").execute()
                 total_usd = 0.0
+                succ = pend = rej = 0
                 for o in (o_res.data or []):
                     status = o.get("status")
                     if status == "approved":
